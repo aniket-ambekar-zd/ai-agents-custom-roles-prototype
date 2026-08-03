@@ -369,6 +369,12 @@ select.sel:disabled { background:#f8f9f9; color:#87929d; cursor:not-allowed; }
         <div class="hint" style="margin-bottom:10px;">
           Defines whether this role can access AI agents, and at what level.
         </div>
+        <div class="callout" style="max-width:660px;margin:0 0 12px;font-size:12px;">
+          <strong>Least privilege by default</strong>
+          Every control in this section defaults to its most restrictive option. A new role grants
+          nothing until an admin deliberately opens each capability. This is a change from the
+          drafted <em>API1</em> requirement, which defaulted API integrations to View&nbsp;Only.
+        </div>
 
         <label class="opt">
           <input type="radio" name="acc" value="none" checked onchange="onAccess()">
@@ -404,8 +410,14 @@ select.sel:disabled { background:#f8f9f9; color:#87929d; cursor:not-allowed; }
               <div class="nd">Controls access to API configurations, authorization credentials,
                 and integration settings.</div>
               <label class="opt">
-                <input type="radio" name="api" value="view" checked onchange="render()">
-                <span><span class="ot">View only <span style="color:#68737d;font-weight:400;">(default)</span></span>
+                <input type="radio" name="api" value="none" checked onchange="render()">
+                <span><span class="ot">No access <span style="color:#68737d;font-weight:400;">(default)</span></span>
+                <span class="od">Cannot see that API integrations exist. The integrations area is
+                  hidden entirely.</span></span>
+              </label>
+              <label class="opt">
+                <input type="radio" name="api" value="view" onchange="render()">
+                <span><span class="ot">View only</span>
                 <span class="od">Can see that integrations exist and their names. Cannot open
                   integration details, authorization headers, secrets or API keys, and cannot create
                   new integrations.</span></span>
@@ -415,6 +427,14 @@ select.sel:disabled { background:#f8f9f9; color:#87929d; cursor:not-allowed; }
                 <span><span class="ot">Full access</span>
                 <span class="od">Can create, edit and delete integrations and view all sensitive fields.</span></span>
               </label>
+              <div class="callout warn" style="margin:12px 0 0;font-size:12px;">
+                <strong>Default changed — and it changes the PRD</strong>
+                <em>API1</em> currently specifies two options with <em>View Only</em> as the default.
+                Least privilege makes <em>No access</em> the correct default, which means a third
+                option and a third scope. Worth confirming: is "cannot see integrations exist" a
+                distinct scope from "can see the list", or is hiding the area a UI decision on top
+                of a denied read?
+              </div>
             </div>
 
             <!-- SUBSEQUENT RELEASE BLOCK -->
@@ -424,29 +444,29 @@ select.sel:disabled { background:#f8f9f9; color:#87929d; cursor:not-allowed; }
                 <h4>Analytics <span class="tag-rel next">Subsequent</span></h4>
                 <div class="nd">Access to AI agent performance metrics, conversation logs and
                   reporting dashboards.</div>
-                <label class="opt"><input type="radio" name="an" value="view" checked onchange="render()">
+                <label class="opt"><input type="radio" name="an" value="none" checked onchange="render()">
+                  <span><span class="ot">No access <span style="color:#68737d;font-weight:400;">(default)</span></span></span></label>
+                <label class="opt"><input type="radio" name="an" value="view" onchange="render()">
                   <span><span class="ot">View only</span></span></label>
-                <label class="opt"><input type="radio" name="an" value="none" onchange="render()">
-                  <span><span class="ot">No access</span></span></label>
               </div>
 
               <div class="nblock">
                 <h4>Settings <span class="tag-rel next">Subsequent</span></h4>
                 <div class="nd">General configuration, languages, generative AI, operating hours,
                   webhooks and advanced settings.</div>
-                <label class="opt"><input type="radio" name="st" value="full" checked onchange="render()">
+                <label class="opt"><input type="radio" name="st" value="none" checked onchange="render()">
+                  <span><span class="ot">No access <span style="color:#68737d;font-weight:400;">(default)</span></span></span></label>
+                <label class="opt"><input type="radio" name="st" value="full" onchange="render()">
                   <span><span class="ot">Full access</span></span></label>
-                <label class="opt"><input type="radio" name="st" value="none" onchange="render()">
-                  <span><span class="ot">No access</span></span></label>
               </div>
 
               <div class="nblock">
                 <h4>Content <span class="tag-rel next">Subsequent</span></h4>
                 <div class="nd">Intents, bot building workflows, use cases, templates, actions and segments.</div>
-                <label class="opt"><input type="radio" name="ct" value="full" checked onchange="render()">
+                <label class="opt"><input type="radio" name="ct" value="none" checked onchange="render()">
+                  <span><span class="ot">No access <span style="color:#68737d;font-weight:400;">(default)</span></span></span></label>
+                <label class="opt"><input type="radio" name="ct" value="full" onchange="render()">
                   <span><span class="ot">Full access</span></span></label>
-                <label class="opt"><input type="radio" name="ct" value="none" onchange="render()">
-                  <span><span class="ot">No access</span></span></label>
                 <div class="callout warn" style="margin:12px 0 0;font-size:12px;">
                   <strong>Open design question</strong>
                   One control here covers five separate entity types. A customer who wants
@@ -456,20 +476,62 @@ select.sel:disabled { background:#f8f9f9; color:#87929d; cursor:not-allowed; }
               </div>
 
               <div class="nblock">
-                <h4>Ownership <span class="tag-rel next">Subsequent</span></h4>
-                <div class="nd">Restrict this role to the AI agents its users created.</div>
-                <label class="opt"><input type="radio" name="ow" value="all" checked onchange="render()">
-                  <span><span class="ot">All AI agents</span></span></label>
-                <label class="opt"><input type="radio" name="ow" value="own" onchange="render()">
-                  <span><span class="ot">Manage only own AI agents</span>
-                  <span class="od">Can edit only agents they created; other agents are read-only.</span></span></label>
+                <h4>Ownership and scope <span class="tag-rel next">Subsequent</span></h4>
+                <div class="nd">Restrict which AI agents this role can manage. Applies to every
+                  capability selected above.</div>
+
+                <label class="opt"><input type="radio" name="ow" value="own" checked onchange="onOwner()">
+                  <span><span class="ot">Manage only own AI agents <span style="color:#68737d;font-weight:400;">(default)</span></span>
+                  <span class="od">Can edit only agents they created. Other agents are read-only.</span></span></label>
+
+                <label class="opt"><input type="radio" name="ow" value="brand" onchange="onOwner()">
+                  <span><span class="ot">Manage AI agents for a brand</span>
+                  <span class="od">Can manage every AI agent belonging to the selected brand,
+                    regardless of who created it.</span></span></label>
+
+                <div class="indent" id="brandPicker" style="display:none;margin-top:6px;margin-bottom:6px;">
+                  <label class="fld" for="brandSel" style="font-size:12px;">Brand</label>
+                  <select class="sel" id="brandSel" style="width:320px;" onchange="render()">
+                    <option value="">Select a brand…</option>
+                    <option value="acme_support">Acme Support</option>
+                    <option value="acme_jp">Acme Japan</option>
+                    <option value="acme_emea">Acme EMEA</option>
+                    <option value="acme_labs">Acme Labs</option>
+                  </select>
+                  <div class="hint" style="font-size:12px;margin-top:6px;">
+                    One brand per role. To cover a user across two brands, create a second role —
+                    a team member can hold only one Support role at a time.
+                  </div>
+                  <div class="callout warn" style="margin:12px 0 0;font-size:12px;">
+                    <strong>Single-select is a real constraint, not a simplification</strong>
+                    Because a user holds one Support role, one brand per role means brand-scoped
+                    users cannot span brands at all. Confirm this matches what the requesting
+                    customer actually needs before it becomes the shipped model — multi-select
+                    later is a schema change, not a UI change.
+                  </div>
+                </div>
+
+                <label class="opt"><input type="radio" name="ow" value="all" onchange="onOwner()">
+                  <span><span class="ot">Manage all AI agents</span>
+                  <span class="od">No ownership or brand restriction.</span></span></label>
+
+                <div class="callout warn" style="margin:12px 0 0;font-size:12px;">
+                  <strong>Blocked on an upstream gap</strong>
+                  The enforcement mechanism for this exists — conditional scopes return filter
+                  expressions the product applies to its queries. What does not exist is
+                  <strong>brand as an attribute on an AI agent</strong>. Today brand selection at
+                  agent creation scopes the knowledge base only; it does not control access.
+                  Precedent: group ID is absent from the auth token and has to be passed explicitly,
+                  so brand identity would likely need the same. This control cannot ship until brand
+                  becomes an access-control attribute.
+                </div>
               </div>
 
             </div><!-- /nextBlocks -->
 
             <div id="v1Note" class="callout" style="margin:18px 0 0;font-size:12px;">
               <strong>First release stops here</strong>
-              Analytics, Settings, Content and Ownership controls arrive in a subsequent release.
+              Analytics, Settings, Content, and Ownership and scope controls arrive in a subsequent release.
               Toggle <em>+ Subsequent</em> in the banner to preview them.
             </div>
           </div><!-- /granOpen -->
@@ -708,7 +770,17 @@ function onAccess(){
   render();
 }
 
+function onOwner(){
+  q('#brandPicker').style.display = val('ow') === 'brand' ? '' : 'none';
+  render();
+}
+
 function primaryAction(){
+  if (scope === 'all' && val('acc') === 'limited' && val('ow') === 'brand' && !q('#brandSel').value){
+    toast('⚠ Select a brand before saving');
+    q('#brandSel').focus();
+    return;
+  }
   if (screen === 'create'){
     const n = q('#rName').value || 'Untitled role';
     q('#newRoleName').textContent = n;
@@ -780,7 +852,15 @@ function buildModel(){
     return {grant, deny, controls: 1};
   }
 
-  const own = (scope === 'all' && val('ow') === 'own') ? 'owner_id = $user.id' : null;
+  let own = null;
+  if (scope === 'all'){
+    const o = val('ow');
+    if (o === 'own') own = 'owner_id = $user.id';
+    else if (o === 'brand'){
+      const b = q('#brandSel').value;
+      own = 'brand_id = ' + (b ? '"' + b + '"' : '⟨none selected⟩');
+    }
+  }
   let controls = 1;
 
   // core agent lifecycle — granted by both Full and Limited
@@ -798,7 +878,11 @@ function buildModel(){
 
   // ---- LIMITED ACCESS ----
   controls = 2; // access + API integrations
-  if (val('api') === 'view'){
+  const api = val('api');
+  if (api === 'none'){
+    ['read','read_credentials','write','create','delete']
+      .forEach(s => push(deny, 'ai_agent_integration', s));
+  } else if (api === 'view'){
     push(grant, 'ai_agent_integration', 'read', own);
     push(deny, 'ai_agent_integration', 'read_credentials');
     push(deny, 'ai_agent_integration', 'write');
@@ -877,7 +961,10 @@ function renderSummary(m){
   } else {
     row('AI agent access', 'Limited access', 'ok');
     row('Agent lifecycle', 'Create, edit, publish, delete', 'ok');
-    if (val('api') === 'view')
+    const api = val('api');
+    if (api === 'none')
+      row('API integrations', 'No access — integrations area hidden entirely', 'deny');
+    else if (api === 'view')
       row('API integrations', 'View only — list visible; credentials, headers, keys and creation blocked', 'deny');
     else row('API integrations', 'Full access — including credentials', 'ok');
 
@@ -886,8 +973,15 @@ function renderSummary(m){
       row('Settings', val('st') === 'full' ? 'Full access' : 'No access', val('st') === 'full' ? 'ok' : 'deny');
       row('Content', val('ct') === 'full' ? 'Full access — intents, use cases, templates, actions, segments' : 'No access',
           val('ct') === 'full' ? 'ok' : 'deny');
-      row('Ownership', val('ow') === 'own' ? 'Manage only own AI agents' : 'All AI agents',
-          val('ow') === 'own' ? 'deny' : 'ok');
+      const o = val('ow');
+      if (o === 'own') row('Ownership and scope', 'Manage only own AI agents', 'deny');
+      else if (o === 'brand'){
+        const sel = q('#brandSel');
+        const b = sel.value ? sel.options[sel.selectedIndex].text : null;
+        row('Ownership and scope', b
+          ? 'Manage AI agents for brand: ' + b
+          : '⚠ Brand scope selected but no brand chosen — role cannot be saved', b ? 'deny' : 'deny');
+      } else row('Ownership and scope', 'Manage all AI agents — no restriction', 'ok');
     }
   }
   row('Requires entitlement', 'AI Agents Advanced — the toggles above do not appear on accounts without it', '');
@@ -896,6 +990,7 @@ function renderSummary(m){
 
 /* ---------------- init ---------------- */
 onAccess();
+onOwner();
 onSupportRole();
 go('list');
 </script>
