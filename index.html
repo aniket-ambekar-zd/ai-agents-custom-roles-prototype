@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agents Permissions in Custom Roles — Prototype</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:#f8f9f9; color:#2f3941; font-size:14px; line-height:1.43;
+}
+a { color:#1f73b7; text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+/* ---------- prototype banner ---------- */
+.proto-banner {
+  background:#fff7d5; border-bottom:1px solid #efe4a3; padding:10px 20px;
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap; position:sticky; top:0; z-index:200;
+}
+.proto-banner .pb-title { font-weight:600; font-size:13px; color:#5f4e00; }
+.proto-banner .pb-sub { font-size:12px; color:#8a7420; }
+.proto-banner .spacer { flex:1; }
+.seg { display:inline-flex; border:1px solid #c3b464; border-radius:4px; overflow:hidden; }
+.seg button {
+  background:#fffdf2; border:none; padding:6px 12px; font-size:12px; cursor:pointer;
+  color:#5f4e00; font-family:inherit; border-right:1px solid #e0d391;
+}
+.seg button:last-child { border-right:none; }
+.seg button.on { background:#5f4e00; color:#fff; }
+.pb-link { font-size:12px; }
+
+/* ---------- app chrome ---------- */
+.zd-top {
+  background:#fff; border-bottom:1px solid #e9ebed; height:48px;
+  display:flex; align-items:center; padding:0 16px; gap:16px;
+}
+.zd-logo {
+  width:26px; height:26px; background:#03363d; border-radius:4px; color:#fff;
+  display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;
+}
+.zd-top .ac { font-weight:600; font-size:14px; }
+.zd-top .acct { color:#68737d; font-size:13px; border-left:1px solid #e9ebed; padding-left:16px; }
+.zd-search {
+  margin-left:auto; width:300px; border:1px solid #d8dcde; border-radius:4px;
+  padding:6px 10px; color:#a0a5a9; font-size:13px; background:#fff;
+}
+.zd-avatar { width:26px; height:26px; border-radius:50%; background:#d8dcde; }
+
+.zd-body { display:flex; min-height:calc(100vh - 108px); align-items:stretch; }
+.zd-rail {
+  width:48px; background:#fff; border-right:1px solid #e9ebed; padding-top:12px;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+}
+.rail-i {
+  width:28px; height:28px; border-radius:4px; background:#f1f3f5;
+  display:flex; align-items:center; justify-content:center; font-size:13px; color:#68737d;
+}
+.rail-i.on { background:#03363d; color:#fff; }
+
+.zd-nav { width:240px; background:#fff; border-right:1px solid #e9ebed; padding:20px 12px; }
+.zd-nav h2 { font-size:20px; margin:0 8px 18px; }
+.nav-group { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:#68737d; margin:18px 8px 6px; font-weight:600; }
+.nav-hr { border-top:1px solid #e9ebed; margin:4px 8px 0; }
+.nav-i { padding:7px 12px; border-radius:4px; color:#2f3941; cursor:default; }
+.nav-i.on { background:#03363d; color:#fff; font-weight:600; }
+
+.zd-main { flex:1; background:#fff; padding:28px 32px 110px; min-width:0; }
+
+/* ---------- generic ---------- */
+.crumbs { font-size:13px; color:#68737d; margin-bottom:14px; }
+.crumbs a { color:#1f73b7; }
+h1.page { font-size:26px; font-weight:600; margin-bottom:6px; }
+.h1row { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+.pill { font-size:11px; padding:3px 8px; border-radius:3px; background:#e9f7ef; color:#166b3f; font-weight:600; }
+.pill.sys { background:#f1f3f5; color:#49545c; }
+.learn { font-size:13px; display:inline-block; margin-bottom:26px; }
+label.fld { display:block; font-weight:600; font-size:13px; margin-bottom:6px; }
+input.txt {
+  width:480px; max-width:100%; padding:9px 11px; border:1px solid #d8dcde;
+  border-radius:4px; font-size:14px; font-family:inherit; color:#2f3941;
+}
+input.txt:focus { outline:none; border-color:#1f73b7; box-shadow:0 0 0 3px rgba(31,115,183,.2); }
+.field { margin-bottom:20px; }
+
+h2.sec { font-size:22px; font-weight:600; margin:34px 0 20px; }
+.pgroup { margin-bottom:38px; max-width:720px; }
+.pgroup > h3 { font-size:17px; font-weight:600; margin-bottom:4px; }
+.pgroup > .desc { color:#68737d; margin-bottom:18px; }
+.sublabel { font-weight:600; font-size:13px; margin:20px 0 8px; }
+.hint { color:#68737d; font-size:13px; margin-top:2px; }
+
+.opt { display:flex; gap:10px; padding:5px 0; align-items:flex-start; cursor:pointer; }
+.opt input { margin-top:3px; accent-color:#1f73b7; width:15px; height:15px; cursor:pointer; flex:none; }
+.opt .ot { font-size:14px; }
+.opt .od { font-size:13px; color:#68737d; margin-top:1px; }
+.opt.disabled { opacity:.5; cursor:not-allowed; }
+.indent { margin-left:26px; }
+
+.nested {
+  margin:14px 0 0 26px; padding:18px 20px; border-left:3px solid #1f73b7;
+  background:#f8f9f9; border-radius:0 4px 4px 0;
+}
+.nested.locked { border-left-color:#d8dcde; }
+.nested h4 { font-size:14px; font-weight:600; margin-bottom:3px; }
+.nested .nd { font-size:13px; color:#68737d; margin-bottom:12px; }
+.nblock { padding:14px 0; border-top:1px solid #e9ebed; }
+.nblock:first-of-type { border-top:none; padding-top:0; }
+
+.tag-rel {
+  font-size:10px; font-weight:700; letter-spacing:.05em; padding:2px 6px; border-radius:3px;
+  vertical-align:middle; margin-left:8px; text-transform:uppercase;
+}
+.tag-rel.v1 { background:#e9f7ef; color:#166b3f; }
+.tag-rel.next { background:#f1e4f5; color:#6b2f7a; }
+
+.callout {
+  border:1px solid #e9ebed; border-left:4px solid #1f73b7; background:#f8f9f9;
+  padding:12px 14px; border-radius:0 4px 4px 0; font-size:13px; margin:14px 0;
+}
+.callout.warn { border-left-color:#dd7a01; background:#fff8f0; }
+.callout.info { border-left-color:#1f73b7; }
+.callout strong { display:block; margin-bottom:3px; }
+
+.footer-bar {
+  position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid #e9ebed;
+  padding:14px 32px; display:flex; justify-content:flex-end; gap:14px; z-index:150;
+}
+.btn {
+  padding:9px 20px; border-radius:20px; border:1px solid transparent; font-size:14px;
+  font-family:inherit; cursor:pointer; font-weight:500;
+}
+.btn.primary { background:#17494d; color:#fff; }
+.btn.primary:hover { background:#03363d; }
+.btn.blue { background:#1f73b7; color:#fff; border-radius:4px; }
+.btn.ghost { background:transparent; color:#2f3941; }
+.btn.sec { background:#fff; color:#1f73b7; border:1px solid #1f73b7; border-radius:4px; }
+.btn:disabled { opacity:.45; cursor:not-allowed; }
+
+table.roles { width:100%; border-collapse:collapse; margin-top:14px; }
+table.roles th {
+  text-align:left; font-size:13px; font-weight:600; padding:10px 12px;
+  border-bottom:1px solid #d8dcde; color:#2f3941;
+}
+table.roles td { padding:13px 12px; border-bottom:1px solid #e9ebed; font-size:14px; }
+table.roles tr.hl td { background:#f4faff; }
+.dots { color:#68737d; cursor:pointer; }
+
+.split { display:flex; gap:0; align-items:stretch; }
+.split .left { flex:1; min-width:0; }
+.split .right { width:300px; border-left:1px solid #e9ebed; padding:0 0 0 28px; margin-left:28px; }
+.right h3 { font-size:16px; margin-bottom:16px; }
+.empty { text-align:center; color:#68737d; padding:40px 10px; }
+.empty .big { font-size:38px; margin-bottom:12px; }
+.empty h4 { font-size:15px; color:#2f3941; margin-bottom:8px; }
+.empty p { font-size:13px; margin-bottom:18px; }
+.member { display:flex; gap:10px; align-items:center; padding:10px 0; border-bottom:1px solid #e9ebed; }
+.member .av { width:30px; height:30px; border-radius:50%; background:#1f73b7; color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+.member .mn { font-size:14px; }
+.member .me { font-size:12px; color:#68737d; }
+
+.overlay {
+  position:fixed; inset:0; background:rgba(47,57,65,.55); z-index:300;
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+.overlay.hide { display:none; }
+.modal { background:#fff; border-radius:8px; width:540px; max-width:100%; box-shadow:0 10px 40px rgba(0,0,0,.3); }
+.modal .mh { padding:20px 24px 0; font-size:18px; font-weight:600; display:flex; }
+.modal .mh .x { margin-left:auto; cursor:pointer; color:#68737d; font-size:20px; line-height:1; }
+.modal .mb { padding:16px 24px 4px; }
+.modal .mf { padding:18px 24px 22px; display:flex; justify-content:flex-end; gap:12px; }
+select.sel {
+  width:100%; padding:9px 11px; border:1px solid #d8dcde; border-radius:4px;
+  font-family:inherit; font-size:14px; background:#fff; color:#2f3941;
+}
+select.sel:disabled { background:#f8f9f9; color:#87929d; cursor:not-allowed; }
+
+.toast {
+  position:fixed; bottom:88px; left:50%; transform:translateX(-50%);
+  background:#2f3941; color:#fff; padding:12px 20px; border-radius:4px; font-size:13px;
+  z-index:400; box-shadow:0 4px 16px rgba(0,0,0,.3); display:flex; gap:10px; align-items:center;
+}
+.toast.hide { display:none; }
+
+/* ---------- under the hood drawer ---------- */
+.hood-tab {
+  position:fixed; right:0; top:50%; transform:translateY(-50%) rotate(180deg);
+  writing-mode:vertical-rl; background:#03363d; color:#fff; padding:16px 9px;
+  border-radius:6px 0 0 6px; cursor:pointer; font-size:12px; font-weight:600;
+  letter-spacing:.05em; z-index:180;
+}
+.hood {
+  position:fixed; right:0; top:0; bottom:0; width:430px; background:#03363d; color:#e8f0f0;
+  z-index:190; padding:22px 24px; overflow-y:auto; box-shadow:-6px 0 24px rgba(0,0,0,.25);
+}
+.hood.hide { display:none; }
+.hood h3 { font-size:15px; color:#fff; margin-bottom:6px; display:flex; align-items:center; }
+.hood h3 .x { margin-left:auto; cursor:pointer; opacity:.7; }
+.hood p.hd { font-size:12px; color:#9fb8ba; margin-bottom:18px; line-height:1.5; }
+.hood h4 { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#7fa6a9; margin:20px 0 8px; }
+.perm {
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px;
+  background:rgba(255,255,255,.07); padding:6px 9px; border-radius:3px; margin-bottom:4px;
+  display:flex; gap:8px; align-items:center;
+}
+.perm .rs { color:#8fd6c0; }
+.perm .sc { color:#f5c86e; }
+.perm .cond { color:#c9a0dc; font-size:11px; margin-left:auto; }
+.perm.denied { opacity:.4; text-decoration:line-through; }
+.hood .none { font-size:12px; color:#7fa6a9; font-style:italic; }
+.hood .metric { display:flex; justify-content:space-between; font-size:12px; padding:5px 0; border-bottom:1px solid rgba(255,255,255,.08); }
+.hood .metric b { color:#fff; }
+.hood .warn2 { background:rgba(221,122,1,.15); border-left:3px solid #dd7a01; padding:10px 12px; font-size:12px; margin-top:16px; line-height:1.5; border-radius:0 3px 3px 0; }
+
+.hide { display:none !important; }
+</style>
+</head>
+<body>
+
+<!-- ================= PROTOTYPE BANNER ================= -->
+<div class="proto-banner">
+  <div>
+    <div class="pb-title">⚠️ PROTOTYPE — AI Agents Permissions in Custom Roles</div>
+    <div class="pb-sub">Not a real product. Clickable mock of the PRD requirements. Aug 2026.</div>
+  </div>
+  <div class="spacer"></div>
+  <div>
+    <div class="pb-sub" style="margin-bottom:4px;">Release scope</div>
+    <div class="seg">
+      <button id="btnV1" class="on" onclick="setScope('v1')">First release</button>
+      <button id="btnAll" onclick="setScope('all')">+ Subsequent</button>
+    </div>
+  </div>
+  <div>
+    <div class="pb-sub" style="margin-bottom:4px;">Screen</div>
+    <div class="seg">
+      <button id="nav1" class="on" onclick="go('list')">1 · Roles</button>
+      <button id="nav2" onclick="go('create')">2 · Create</button>
+      <button id="nav3" onclick="go('edit')">3 · Saved + Assign</button>
+      <button id="nav4" onclick="go('member')">4 · Team member</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= APP CHROME ================= -->
+<div class="zd-top">
+  <div class="zd-logo">Z</div>
+  <span class="ac">Admin center ⌄</span>
+  <span class="acct">z3nssobrandtesting178541…</span>
+  <div class="zd-search">🔍 Search admin center</div>
+  <div class="zd-avatar"></div>
+</div>
+
+<div class="zd-body">
+  <div class="zd-rail">
+    <div class="rail-i">⌂</div>
+    <div class="rail-i">▦</div>
+    <div class="rail-i on">👥</div>
+    <div class="rail-i">➤</div>
+    <div class="rail-i">✦</div>
+    <div class="rail-i">▭</div>
+    <div class="rail-i">⟳</div>
+  </div>
+
+  <div class="zd-nav">
+    <h2>People</h2>
+    <div class="nav-group">Team</div><div class="nav-hr"></div>
+    <div class="nav-i" id="navTM">Team members</div>
+    <div class="nav-i on" id="navRoles">Roles</div>
+    <div class="nav-i">Groups</div>
+    <div class="nav-group">Configuration</div><div class="nav-hr"></div>
+    <div class="nav-i">User fields</div>
+    <div class="nav-i">Organization fields</div>
+    <div class="nav-i">Events</div>
+    <div class="nav-i">Profiles</div>
+    <div class="nav-i">End users</div>
+    <div class="nav-i">Tags</div>
+    <div class="nav-group">Bulk actions</div><div class="nav-hr"></div>
+    <div class="nav-i">Import users</div>
+    <div class="nav-i">Import organizations</div>
+  </div>
+
+  <div class="zd-main">
+
+    <!-- ============ SCREEN 1 : ROLES LIST ============ -->
+    <div id="scr-list">
+      <div class="crumbs">People &nbsp;›&nbsp; Team &nbsp;›&nbsp; Roles</div>
+      <div style="display:flex;align-items:flex-start;">
+        <div>
+          <h1 class="page">Roles</h1>
+          <p style="color:#68737d;">Create, assign, and manage roles for your team.
+            <a href="#" onclick="return false">Learn about managing roles ↗</a></p>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:18px;align-items:center;">
+          <a href="#" onclick="return false">Compare roles</a>
+          <button class="btn blue" onclick="go('create')">Create role</button>
+        </div>
+      </div>
+
+      <p style="margin-top:26px;color:#68737d;font-size:13px;" id="roleCount">7 roles</p>
+      <table class="roles">
+        <thead><tr>
+          <th style="width:26%">Name ▴</th><th style="width:12%">Type</th>
+          <th style="width:16%">Team members</th><th>Description</th><th style="width:40px"></th>
+        </tr></thead>
+        <tbody>
+          <tr class="hl" id="rowNew" style="display:none;">
+            <td><a href="#" onclick="go('edit');return false;" id="newRoleName">AI Agent Manager — Limited</a></td>
+            <td><span class="pill">Custom</span></td>
+            <td id="newRoleCount">0</td>
+            <td id="newRoleDesc">Manage AI agents without access to API credentials</td>
+            <td class="dots">⋮</td>
+          </tr>
+          <tr><td>Admin</td><td><span class="pill sys">System</span></td><td>1</td><td>Can manage all settings, except billing</td><td class="dots">⋮</td></tr>
+          <tr><td>Advisor</td><td><span class="pill">Custom</span></td><td>0</td><td>Can automate ticket workflows, manage channels and make private comments on tickets</td><td class="dots">⋮</td></tr>
+          <tr><td>Contributor</td><td><span class="pill sys">System</span></td><td>0</td><td>Can provide limited support</td><td class="dots">⋮</td></tr>
+          <tr><td>Light agent</td><td><span class="pill sys">System</span></td><td>0</td><td>Can view and add private comments to tickets</td><td class="dots">⋮</td></tr>
+          <tr><td>Staff</td><td><span class="pill">Custom</span></td><td>0</td><td>Can edit tickets within their groups</td><td class="dots">⋮</td></tr>
+          <tr><td>Team lead</td><td><span class="pill">Custom</span></td><td>0</td><td>Can manage all tickets and forums</td><td class="dots">⋮</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout info" style="max-width:760px;margin-top:34px;">
+        <strong>What this prototype shows</strong>
+        Screens 2–4 mock the four PRD flows: configuring AI agent permissions on a custom role
+        (ACC1–4, API1–5), saving it, assigning team members, and the Team&nbsp;member page where the
+        AI agent product role becomes read-only (ADM5–7). Toggle <em>+ Subsequent</em> above to see the
+        UC2 expansion controls (GRN1–3). Open <em>Under the hood</em> on the right to see the
+        <code>resource:scope</code> permissions each control actually produces.
+      </div>
+    </div>
+
+    <!-- ============ SCREEN 2 : CREATE ROLE ============ -->
+    <div id="scr-create" class="hide">
+      <div class="crumbs">People &nbsp;›&nbsp; Team &nbsp;›&nbsp; <a href="#" onclick="go('list');return false;">Roles</a> &nbsp;›&nbsp; Create role</div>
+      <h1 class="page">Create role</h1>
+      <a class="learn" href="#" onclick="return false">Learn about role permissions ↗</a>
+
+      <div class="field">
+        <label class="fld" for="rName">Name* (required)</label>
+        <input class="txt" id="rName" value="AI Agent Manager — Limited">
+      </div>
+      <div class="field">
+        <label class="fld" for="rDesc">Description</label>
+        <input class="txt" id="rDesc" value="Manage AI agents without access to API credentials">
+      </div>
+
+      <h2 class="sec">Permissions</h2>
+
+      <!-- collapsed existing sections -->
+      <div class="pgroup" style="opacity:.55;">
+        <h3>Tickets</h3>
+        <div class="desc">Choose the ticket permissions for this role.</div>
+        <div class="hint">— existing section, unchanged by this initiative —</div>
+      </div>
+      <div class="pgroup" style="opacity:.55;">
+        <h3>People</h3>
+        <div class="desc">Choose the people permissions for this role.</div>
+        <div class="hint">— existing section, unchanged —</div>
+      </div>
+
+      <!-- ============ THE NEW SECTION ============ -->
+      <div class="pgroup" id="aiSection" style="border:2px solid #1f73b7;border-radius:6px;padding:22px 24px;background:#fbfdff;">
+        <h3>AI agents <span class="tag-rel v1">New</span></h3>
+        <div class="desc">Choose the AI agent permissions for this role.
+          <a href="#" onclick="return false">Learn about AI agent permissions ↗</a></div>
+
+        <div class="sublabel">AI agent access</div>
+        <div class="hint" style="margin-bottom:10px;">
+          Defines whether this role can access AI agents, and at what level.
+        </div>
+
+        <label class="opt">
+          <input type="radio" name="acc" value="none" checked onchange="onAccess()">
+          <span><span class="ot">No access</span>
+          <span class="od">Users with this role cannot open the AI agents dashboard. The AI agents
+            entry stays visible in the product tray.</span></span>
+        </label>
+        <label class="opt">
+          <input type="radio" name="acc" value="full" onchange="onAccess()">
+          <span><span class="ot">Full access</span>
+          <span class="od">Can manage every AI agent capability without restriction — create, edit,
+            publish, delete, settings, and API integrations including credentials.</span></span>
+        </label>
+        <label class="opt">
+          <input type="radio" name="acc" value="limited" onchange="onAccess()">
+          <span><span class="ot">Limited access</span>
+          <span class="od">Can manage AI agents, with restrictions on the specific capabilities
+            selected below.</span></span>
+        </label>
+
+        <!-- nested granular controls -->
+        <div class="nested locked" id="granular">
+          <div id="granLocked">
+            <h4 style="color:#68737d;">Granular permissions</h4>
+            <div class="nd">Select <strong>Limited access</strong> to restrict individual AI agent capabilities.</div>
+          </div>
+
+          <div id="granOpen" class="hide">
+
+            <!-- API integrations : FIRST RELEASE -->
+            <div class="nblock">
+              <h4>API integrations <span class="tag-rel v1">First release</span></h4>
+              <div class="nd">Controls access to API configurations, authorization credentials,
+                and integration settings.</div>
+              <label class="opt">
+                <input type="radio" name="api" value="view" checked onchange="render()">
+                <span><span class="ot">View only <span style="color:#68737d;font-weight:400;">(default)</span></span>
+                <span class="od">Can see that integrations exist and their names. Cannot open
+                  integration details, authorization headers, secrets or API keys, and cannot create
+                  new integrations.</span></span>
+              </label>
+              <label class="opt">
+                <input type="radio" name="api" value="full" onchange="render()">
+                <span><span class="ot">Full access</span>
+                <span class="od">Can create, edit and delete integrations and view all sensitive fields.</span></span>
+              </label>
+            </div>
+
+            <!-- SUBSEQUENT RELEASE BLOCK -->
+            <div id="nextBlocks" class="hide">
+
+              <div class="nblock">
+                <h4>Analytics <span class="tag-rel next">Subsequent</span></h4>
+                <div class="nd">Access to AI agent performance metrics, conversation logs and
+                  reporting dashboards.</div>
+                <label class="opt"><input type="radio" name="an" value="view" checked onchange="render()">
+                  <span><span class="ot">View only</span></span></label>
+                <label class="opt"><input type="radio" name="an" value="none" onchange="render()">
+                  <span><span class="ot">No access</span></span></label>
+              </div>
+
+              <div class="nblock">
+                <h4>Settings <span class="tag-rel next">Subsequent</span></h4>
+                <div class="nd">General configuration, languages, generative AI, operating hours,
+                  webhooks and advanced settings.</div>
+                <label class="opt"><input type="radio" name="st" value="full" checked onchange="render()">
+                  <span><span class="ot">Full access</span></span></label>
+                <label class="opt"><input type="radio" name="st" value="none" onchange="render()">
+                  <span><span class="ot">No access</span></span></label>
+              </div>
+
+              <div class="nblock">
+                <h4>Content <span class="tag-rel next">Subsequent</span></h4>
+                <div class="nd">Intents, bot building workflows, use cases, templates, actions and segments.</div>
+                <label class="opt"><input type="radio" name="ct" value="full" checked onchange="render()">
+                  <span><span class="ot">Full access</span></span></label>
+                <label class="opt"><input type="radio" name="ct" value="none" onchange="render()">
+                  <span><span class="ot">No access</span></span></label>
+                <div class="callout warn" style="margin:12px 0 0;font-size:12px;">
+                  <strong>Open design question</strong>
+                  One control here covers five separate entity types. A customer who wants
+                  “manage templates but not intents” is blocked by this grouping, not by the platform.
+                  Splitting it later is a UI change, not a permissions change.
+                </div>
+              </div>
+
+              <div class="nblock">
+                <h4>Ownership <span class="tag-rel next">Subsequent</span></h4>
+                <div class="nd">Restrict this role to the AI agents its users created.</div>
+                <label class="opt"><input type="radio" name="ow" value="all" checked onchange="render()">
+                  <span><span class="ot">All AI agents</span></span></label>
+                <label class="opt"><input type="radio" name="ow" value="own" onchange="render()">
+                  <span><span class="ot">Manage only own AI agents</span>
+                  <span class="od">Can edit only agents they created; other agents are read-only.</span></span></label>
+              </div>
+
+            </div><!-- /nextBlocks -->
+
+            <div id="v1Note" class="callout" style="margin:18px 0 0;font-size:12px;">
+              <strong>First release stops here</strong>
+              Analytics, Settings, Content and Ownership controls arrive in a subsequent release.
+              Toggle <em>+ Subsequent</em> in the banner to preview them.
+            </div>
+          </div><!-- /granOpen -->
+        </div><!-- /granular -->
+
+        <div class="callout warn" style="max-width:660px;">
+          <strong>Permission changes are not instant</strong>
+          Live copy candidate: “Changes to AI agent permissions can take up to a minute to apply
+          for signed-in users.” Raised because enforcement evaluates a cached policy bundle, not the
+          database, at request time. Needs to become an explicit PRD requirement.
+        </div>
+      </div>
+
+      <div class="pgroup" style="opacity:.55;">
+        <h3>Knowledge</h3>
+        <div class="desc">Choose whether or not this role includes managing Knowledge.</div>
+        <div class="hint">— existing section, unchanged —</div>
+      </div>
+      <div class="pgroup" style="opacity:.55;">
+        <h3>Reporting and analytics</h3>
+        <div class="desc">Choose the analytics permissions for this role.</div>
+        <div class="hint">— existing section, unchanged —</div>
+      </div>
+    </div>
+
+    <!-- ============ SCREEN 3 : EDIT / SAVED ROLE ============ -->
+    <div id="scr-edit" class="hide">
+      <div class="crumbs">People &nbsp;›&nbsp; Team &nbsp;›&nbsp; <a href="#" onclick="go('list');return false;">Roles</a> &nbsp;›&nbsp; Edit role</div>
+      <div class="split">
+        <div class="left">
+          <div class="h1row">
+            <h1 class="page" id="editTitle">AI Agent Manager — Limited</h1>
+            <span class="pill">Custom</span>
+            <button class="btn sec" style="margin-left:auto;" onclick="openAssign()">Actions ⌄</button>
+          </div>
+          <a class="learn" href="#" onclick="return false">Learn about role permissions ↗</a>
+
+          <div class="field">
+            <label class="fld">Name* (required)</label>
+            <input class="txt" id="editName" value="AI Agent Manager — Limited" disabled
+              style="background:#f8f9f9;color:#49545c;">
+          </div>
+
+          <h2 class="sec" style="margin-top:24px;">Permissions</h2>
+
+          <div class="pgroup">
+            <h3>AI agents</h3>
+            <div class="desc">Saved configuration for this role.</div>
+            <div style="border:1px solid #e9ebed;border-radius:6px;overflow:hidden;">
+              <div style="background:#f8f9f9;padding:10px 14px;font-weight:600;font-size:13px;
+                          border-bottom:1px solid #e9ebed;">Effective AI agent permissions</div>
+              <div id="summaryRows"></div>
+            </div>
+          </div>
+
+          <div class="callout info" style="max-width:660px;">
+            <strong>Nothing here is enforced by the platform alone</strong>
+            The Permissions service answers “is this allowed?”. The AI Agents product still has to ask
+            and act on the answer — hiding the credentials fields, blocking the write, filtering the
+            list. That enforcement work is ours, per the Permissions team's Q3 commitment.
+          </div>
+        </div>
+
+        <div class="right">
+          <h3 id="tmHeader">Team members (0)</h3>
+          <div id="tmEmpty" class="empty">
+            <div class="big">🗄️</div>
+            <h4>No one in sight</h4>
+            <p>There’s nobody in this role. You can assign it to team members via their profiles.</p>
+            <button class="btn sec" onclick="openAssign()">Assign role</button>
+          </div>
+          <div id="tmList" class="hide"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SCREEN 4 : TEAM MEMBER ============ -->
+    <div id="scr-member" class="hide">
+      <div class="crumbs">People &nbsp;›&nbsp; Team &nbsp;›&nbsp; <a href="#" onclick="return false">Team members</a> &nbsp;›&nbsp; Priya Raman</div>
+      <div class="h1row">
+        <h1 class="page">Priya Raman</h1>
+      </div>
+      <p style="color:#68737d;margin-bottom:26px;">priya.raman@example.com · Agent</p>
+
+      <div class="pgroup" style="max-width:560px;">
+        <h3>Roles and access</h3>
+        <div class="desc">Team members can only have one Support role at a time.</div>
+
+        <div class="field" style="margin-top:20px;">
+          <label class="fld">Support role</label>
+          <select class="sel" id="supportRole" onchange="onSupportRole()">
+            <option value="custom">AI Agent Manager — Limited (Custom)</option>
+            <option value="agent">Agent (System)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="fld">AI agent role</label>
+          <select class="sel" id="aiRole" disabled>
+            <option>Defined by Support role</option>
+          </select>
+          <div class="hint" id="aiRoleHint">
+            ⓘ Defined by Support role — AI agent access for this user is managed by the custom role
+            assigned above.
+          </div>
+        </div>
+
+        <div class="callout" style="margin-top:24px;">
+          <strong>ADM5–ADM7 — and the reason it matters</strong>
+          AI Agents has its own three product roles (admin, editor, user). When a custom role carries
+          AI agent permissions, the custom role has to win, or two systems grant access to the same
+          user and the compliance story collapses. Disabling this field is the visible half; the
+          invisible half is our code ignoring the product role — which is the enforcement work most
+          likely to be underestimated.
+        </div>
+
+        <div class="callout warn">
+          <strong>Unresolved</strong>
+          What happens to a user who already has an AI agent product role when they are moved into a
+          custom role that carries AI agent permissions? Migration behaviour for existing
+          custom-role accounts is not yet decided. Question for the Aug 5 sync.
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /zd-main -->
+</div><!-- /zd-body -->
+
+<!-- ================= FOOTER BAR ================= -->
+<div class="footer-bar" id="footer">
+  <button class="btn ghost" onclick="go('list')">Cancel</button>
+  <button class="btn primary" id="primaryBtn" onclick="primaryAction()">Create role</button>
+</div>
+
+<!-- ================= ASSIGN MODAL ================= -->
+<div class="overlay hide" id="assignOverlay">
+  <div class="modal">
+    <div class="mh">Assign role <span class="x" onclick="closeAssign()">✕</span></div>
+    <div class="mb">
+      <p style="color:#49545c;margin-bottom:18px;">Team members can only have one role at a time.
+        When their role changes, their permissions change too.</p>
+      <label class="fld">Select team members</label>
+      <select class="sel" id="assignPick" multiple size="4" style="height:auto;">
+        <option value="Priya Raman" selected>Priya Raman — Content specialist</option>
+        <option value="Tom Bekker">Tom Bekker — Bot builder</option>
+        <option value="Ana Silva">Ana Silva — Support lead</option>
+        <option value="Deepak Rao">Deepak Rao — Business analyst</option>
+      </select>
+      <div class="callout warn" style="font-size:12px;margin-top:16px;">
+        <strong>Propagation</strong>
+        Newly assigned permissions can take up to a minute to take effect for users who are already
+        signed in.
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn ghost" onclick="closeAssign()">Cancel</button>
+      <button class="btn primary" onclick="confirmAssign()">Assign role</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast hide" id="toast"><span>✓</span><span id="toastMsg"></span></div>
+
+<!-- ================= UNDER THE HOOD ================= -->
+<div class="hood-tab" id="hoodTab" onclick="toggleHood()">UNDER THE HOOD ◂</div>
+<div class="hood hide" id="hood">
+  <h3>Under the hood <span class="x" onclick="toggleHood()">✕</span></h3>
+  <p class="hd">What the admin clicks above vs. what the Permissions platform actually stores.
+    One control is never one permission. This panel is live — change any option and watch it update.</p>
+
+  <h4>Permissions granted</h4>
+  <div id="hoodGrant"></div>
+
+  <h4>Explicitly withheld</h4>
+  <div id="hoodDeny"></div>
+
+  <h4>Cost of this configuration</h4>
+  <div class="metric"><span>Admin-facing controls</span><b id="mCtrl">0</b></div>
+  <div class="metric"><span>Distinct resources</span><b id="mRes">0</b></div>
+  <div class="metric"><span><code>resource:scope</code> pairs</span><b id="mPair">0</b></div>
+  <div class="metric"><span>Resources needing conditions</span><b id="mCond">0</b></div>
+
+  <div class="warn2">
+    Every distinct <code>resource:scope</code> pair is a spec reviewed by the Permissions team plus a
+    change across ~5 repos. Nothing can be added at runtime. Grouping controls is cheap and reversible;
+    defining the vocabulary is neither.
+    <br><br><b>Question for Aug 5:</b> how many pairs can Permissions review and accept in Q3 — and do
+    they count pairs or customer-facing controls?
+  </div>
+</div>
+
+<script>
+/* ---------------- state ---------------- */
+let scope = 'v1';
+let screen = 'list';
+let saved = false;
+let members = [];
+
+const q = s => document.querySelector(s);
+const val = n => { const e = document.querySelector('input[name="'+n+'"]:checked'); return e ? e.value : null; };
+
+/* ---------------- navigation ---------------- */
+function go(s){
+  screen = s; saved = saved || s === 'edit';
+  ['list','create','edit','member'].forEach(k =>
+    q('#scr-'+k).classList.toggle('hide', k !== s));
+  const navs = {list:'#nav1', create:'#nav2', edit:'#nav3', member:'#nav4'};
+  Object.values(navs).forEach(id => q(id).classList.remove('on'));
+  q(navs[s]).classList.add('on');
+  q('#navRoles').classList.toggle('on', s !== 'member');
+  q('#navTM').classList.toggle('on', s === 'member');
+
+  const f = q('#footer');
+  if (s === 'list') f.classList.add('hide'); else f.classList.remove('hide');
+  q('#primaryBtn').textContent = s === 'create' ? 'Create role' : 'Save';
+  if (s === 'edit') { q('#rowNew').style.display = ''; }
+  render();
+  window.scrollTo(0,0);
+}
+
+function setScope(s){
+  scope = s;
+  q('#btnV1').classList.toggle('on', s === 'v1');
+  q('#btnAll').classList.toggle('on', s === 'all');
+  q('#nextBlocks').classList.toggle('hide', s === 'v1');
+  q('#v1Note').classList.toggle('hide', s !== 'v1');
+  render();
+}
+
+function onAccess(){
+  const a = val('acc');
+  const open = a === 'limited';
+  q('#granOpen').classList.toggle('hide', !open);
+  q('#granLocked').classList.toggle('hide', open);
+  q('#granular').classList.toggle('locked', !open);
+  render();
+}
+
+function primaryAction(){
+  if (screen === 'create'){
+    const n = q('#rName').value || 'Untitled role';
+    q('#newRoleName').textContent = n;
+    q('#editTitle').textContent = n;
+    q('#editName').value = n;
+    q('#newRoleDesc').textContent = q('#rDesc').value;
+    q('#rowNew').style.display = '';
+    toast('Role created');
+    go('edit');
+  } else {
+    toast('Changes saved — may take up to a minute to apply');
+  }
+}
+
+function toast(m){
+  q('#toastMsg').textContent = m;
+  q('#toast').classList.remove('hide');
+  clearTimeout(window._t);
+  window._t = setTimeout(() => q('#toast').classList.add('hide'), 3200);
+}
+
+/* ---------------- assign ---------------- */
+function openAssign(){ q('#assignOverlay').classList.remove('hide'); }
+function closeAssign(){ q('#assignOverlay').classList.add('hide'); }
+function confirmAssign(){
+  members = [...q('#assignPick').selectedOptions].map(o => o.value);
+  closeAssign();
+  renderMembers();
+  toast(members.length + ' team member(s) assigned');
+  go('edit');
+}
+function renderMembers(){
+  q('#tmHeader').textContent = 'Team members (' + members.length + ')';
+  q('#newRoleCount').textContent = members.length;
+  q('#tmEmpty').classList.toggle('hide', members.length > 0);
+  q('#tmList').classList.toggle('hide', members.length === 0);
+  q('#tmList').innerHTML = members.map(m =>
+    '<div class="member"><div class="av">' + m.split(' ').map(x=>x[0]).join('') +
+    '</div><div><div class="mn">' + m + '</div>' +
+    '<div class="me">AI agent access via custom role</div></div></div>').join('') +
+    '<button class="btn sec" style="margin-top:16px;" onclick="openAssign()">Assign role</button>';
+}
+
+function onSupportRole(){
+  const custom = q('#supportRole').value === 'custom';
+  q('#aiRole').disabled = custom;
+  q('#aiRole').innerHTML = custom
+    ? '<option>Defined by Support role</option>'
+    : '<option>None</option><option>AI agent user</option><option>AI agent editor</option><option>AI agent admin</option>';
+  q('#aiRoleHint').innerHTML = custom
+    ? 'ⓘ Defined by Support role — AI agent access for this user is managed by the custom role assigned above.'
+    : 'This system role carries no AI agent permissions, so the AI agent product role is selectable.';
+}
+
+/* ---------------- under the hood ---------------- */
+function toggleHood(){
+  const h = q('#hood');
+  h.classList.toggle('hide');
+  q('#hoodTab').classList.toggle('hide', !h.classList.contains('hide'));
+}
+
+function buildModel(){
+  const a = val('acc');
+  const grant = [], deny = [];
+  const push = (arr, r, s, c) => arr.push({r, s, c: c || null});
+
+  if (a === 'none'){
+    push(deny, 'ai_agent', 'read');
+    return {grant, deny, controls: 1};
+  }
+
+  const own = (scope === 'all' && val('ow') === 'own') ? 'owner_id = $user.id' : null;
+  let controls = 1;
+
+  // core agent lifecycle — granted by both Full and Limited
+  ['read','write','create','delete','publish'].forEach(s => push(grant, 'ai_agent', s, own));
+
+  if (a === 'full'){
+    ['read','write','create','delete'].forEach(s => push(grant, 'ai_agent_integration', s));
+    push(grant, 'ai_agent_integration', 'read_credentials');
+    ['ai_agent_use_case','ai_agent_template','ai_agent_intent','ai_agent_action','ai_agent_segment']
+      .forEach(r => ['read','write','create','delete'].forEach(s => push(grant, r, s)));
+    push(grant, 'ai_agent_setting', 'read'); push(grant, 'ai_agent_setting', 'write');
+    push(grant, 'ai_agent_analytics', 'read');
+    return {grant, deny, controls: 1};
+  }
+
+  // ---- LIMITED ACCESS ----
+  controls = 2; // access + API integrations
+  if (val('api') === 'view'){
+    push(grant, 'ai_agent_integration', 'read', own);
+    push(deny, 'ai_agent_integration', 'read_credentials');
+    push(deny, 'ai_agent_integration', 'write');
+    push(deny, 'ai_agent_integration', 'create');
+    push(deny, 'ai_agent_integration', 'delete');
+  } else {
+    ['read','read_credentials','write','create','delete']
+      .forEach(s => push(grant, 'ai_agent_integration', s, own));
+  }
+
+  if (scope === 'all'){
+    controls = 6;
+    if (val('an') === 'view') push(grant, 'ai_agent_analytics', 'read', own);
+    else push(deny, 'ai_agent_analytics', 'read');
+
+    if (val('st') === 'full'){
+      push(grant, 'ai_agent_setting', 'read', own);
+      push(grant, 'ai_agent_setting', 'write', own);
+    } else { push(deny, 'ai_agent_setting', 'read'); push(deny, 'ai_agent_setting', 'write'); }
+
+    const content = ['ai_agent_use_case','ai_agent_template','ai_agent_intent','ai_agent_action','ai_agent_segment'];
+    if (val('ct') === 'full')
+      content.forEach(r => ['read','write','create','delete'].forEach(s => push(grant, r, s, own)));
+    else content.forEach(r => push(deny, r, 'read'));
+  } else {
+    // v1: capabilities not yet decomposed travel with ai_agent
+    push(grant, 'ai_agent', 'write_settings', own);
+    push(grant, 'ai_agent', 'read_analytics', own);
+  }
+
+  return {grant, deny, controls};
+}
+
+function permHtml(p, denied){
+  return '<div class="perm' + (denied ? ' denied' : '') + '">' +
+    '<span><span class="rs">' + p.r + '</span>:<span class="sc">' + p.s + '</span></span>' +
+    (p.c ? '<span class="cond">where ' + p.c + '</span>' : '') + '</div>';
+}
+
+function render(){
+  const m = buildModel();
+  q('#hoodGrant').innerHTML = m.grant.length
+    ? m.grant.map(p => permHtml(p,false)).join('') : '<div class="none">none</div>';
+  q('#hoodDeny').innerHTML = m.deny.length
+    ? m.deny.map(p => permHtml(p,true)).join('') : '<div class="none">none</div>';
+
+  const all = m.grant.concat(m.deny);
+  const res = new Set(all.map(p => p.r));
+  const pairs = new Set(all.map(p => p.r + ':' + p.s));
+  const cond = new Set(m.grant.filter(p => p.c).map(p => p.r));
+  q('#mCtrl').textContent = m.controls;
+  q('#mRes').textContent = res.size;
+  q('#mPair').textContent = pairs.size;
+  q('#mCond').textContent = cond.size;
+
+  renderSummary(m);
+}
+
+/* effective-permission summary on the saved-role screen */
+function renderSummary(m){
+  const a = val('acc');
+  const rows = [];
+  const row = (label, value, tone) => rows.push(
+    '<div style="display:flex;padding:11px 14px;border-bottom:1px solid #e9ebed;font-size:13px;">' +
+    '<div style="width:190px;color:#68737d;">' + label + '</div>' +
+    '<div style="flex:1;' + (tone === 'deny' ? 'color:#8c232c;' : tone === 'ok' ? 'color:#166b3f;' : '') +
+    '">' + value + '</div></div>');
+
+  if (a === 'none'){
+    row('AI agent access', 'No access', 'deny');
+    row('Dashboard', 'Blocked. Product tray entry remains visible.', 'deny');
+  } else if (a === 'full'){
+    row('AI agent access', 'Full access', 'ok');
+    row('API integrations', 'Full access — including credentials, headers and keys', 'ok');
+    row('All other capabilities', 'Unrestricted', 'ok');
+  } else {
+    row('AI agent access', 'Limited access', 'ok');
+    row('Agent lifecycle', 'Create, edit, publish, delete', 'ok');
+    if (val('api') === 'view')
+      row('API integrations', 'View only — list visible; credentials, headers, keys and creation blocked', 'deny');
+    else row('API integrations', 'Full access — including credentials', 'ok');
+
+    if (scope === 'all'){
+      row('Analytics', val('an') === 'view' ? 'View only' : 'No access', val('an') === 'view' ? 'ok' : 'deny');
+      row('Settings', val('st') === 'full' ? 'Full access' : 'No access', val('st') === 'full' ? 'ok' : 'deny');
+      row('Content', val('ct') === 'full' ? 'Full access — intents, use cases, templates, actions, segments' : 'No access',
+          val('ct') === 'full' ? 'ok' : 'deny');
+      row('Ownership', val('ow') === 'own' ? 'Manage only own AI agents' : 'All AI agents',
+          val('ow') === 'own' ? 'deny' : 'ok');
+    }
+  }
+  row('Requires entitlement', 'AI Agents Advanced — the toggles above do not appear on accounts without it', '');
+  q('#summaryRows').innerHTML = rows.join('');
+}
+
+/* ---------------- init ---------------- */
+onAccess();
+onSupportRole();
+go('list');
+</script>
+</body>
+</html>
