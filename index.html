@@ -96,6 +96,19 @@ h2.sec { font-size:22px; font-weight:600; margin:34px 0 20px; }
 .opt .od { font-size:13px; color:#68737d; margin-top:1px; }
 .opt.disabled { opacity:.5; cursor:not-allowed; }
 .indent { margin-left:26px; }
+.agentbox { border:1px solid #d8dcde; border-radius:6px; max-width:430px; }
+.agentsearch { width:100%; border:0; border-bottom:1px solid #e9ebed; padding:8px 10px;
+  font:inherit; font-size:13px; border-radius:6px 6px 0 0; outline:none; box-sizing:border-box; }
+.agentscroll { max-height:186px; overflow-y:auto; padding:4px 0; }
+.agentrow { display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; cursor:pointer; }
+.agentrow:hover { background:#f8f9f9; }
+.agentrow input { margin:0; flex:0 0 auto; }
+.agentrow .abrand { margin-left:auto; color:#68737d; font-size:11px; white-space:nowrap; }
+.selcount { padding:7px 10px; border-top:1px solid #e9ebed; background:#f8f9f9;
+  font-size:12px; color:#68737d; border-radius:0 0 6px 6px; }
+.chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.chip { background:#edf7ff; border:1px solid #cee2f2; color:#1f73b7; border-radius:12px;
+  padding:2px 10px; font-size:12px; }
 
 .nested {
   margin:14px 0 0 26px; padding:18px 20px; border-left:3px solid #1f73b7;
@@ -480,9 +493,80 @@ select.sel:disabled { background:#f8f9f9; color:#87929d; cursor:not-allowed; }
                 <div class="nd">Restrict which AI agents this role can manage. Applies to every
                   capability selected above.</div>
 
+                <div class="callout info" style="margin:0 0 12px;font-size:12px;">
+                  <strong>“Manage selected AI agents” replaces an internal-only capability</strong>
+                  Restricting a customer admin to specific AI agents exists today, but only the
+                  internal Zendesk <em>Admin</em> role can configure it — which means a customer
+                  cannot self-serve it, and it cannot be handed to the customer admin directly
+                  without letting them lift their own restriction. Moving it here fixes that: the
+                  configurer becomes the account's Support admin or owner, a higher authority than
+                  the role being restricted. The dashboard version is being removed under Admin Role
+                  Deprecation with a deliberate capability gap until this control ships.
+                </div>
+
                 <label class="opt"><input type="radio" name="ow" value="own" checked onchange="onOwner()">
                   <span><span class="ot">Manage only own AI agents <span style="color:#68737d;font-weight:400;">(default)</span></span>
                   <span class="od">Can edit only agents they created. Other agents are read-only.</span></span></label>
+
+                <label class="opt"><input type="radio" name="ow" value="selected" onchange="onOwner()">
+                  <span><span class="ot">Manage selected AI agents</span>
+                  <span class="od">Can manage only the AI agents chosen below, regardless of who
+                    created them. Every other agent is inaccessible.</span></span></label>
+
+                <div class="indent" id="agentPicker" style="display:none;margin-top:6px;margin-bottom:6px;">
+                  <label class="fld" style="font-size:12px;">AI agents this role can manage</label>
+                  <div class="agentbox">
+                    <input class="agentsearch" id="agentSearch" placeholder="Search AI agents…"
+                      oninput="filterAgents()">
+                    <div class="agentscroll" id="agentScroll">
+                      <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_1042"
+                        data-name="Acme Support Bot" onchange="render()">
+                        <span>Acme Support Bot</span><span class="abrand">Acme Support</span></label>
+                      <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_1043"
+                        data-name="Billing Assistant" onchange="render()">
+                        <span>Billing Assistant</span><span class="abrand">Acme Support</span></label>
+                      <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_1044"
+                        data-name="Order Tracking Bot" onchange="render()">
+                        <span>Order Tracking Bot</span><span class="abrand">Acme Support</span></label>
+                      <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_2011"
+                        data-name="Acme JP Helpdesk" onchange="render()">
+                        <span>Acme JP Helpdesk</span><span class="abrand">Acme Japan</span></label>
+                      <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_2012"
+                        data-name="JP Returns Bot" onchange="render()">
+                        <span>JP Returns Bot</span><span class="abrand">Acme Japan</span></label>
+                      <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_3007"
+                        data-name="EMEA Tier 1 Bot" onchange="render()">
+                        <span>EMEA Tier 1 Bot</span><span class="abrand">Acme EMEA</span></label>
+                      <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_3008"
+                        data-name="GDPR Requests Bot" onchange="render()">
+                        <span>GDPR Requests Bot</span><span class="abrand">Acme EMEA</span></label>
+                      <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_4001"
+                        data-name="Labs Sandbox Bot" onchange="render()">
+                        <span>Labs Sandbox Bot</span><span class="abrand">Acme Labs</span></label>
+                    </div>
+                    <div class="selcount" id="agentCount">No AI agents selected</div>
+                  </div>
+                  <div class="chips" id="agentChips"></div>
+                  <div class="callout warn" style="margin:12px 0 0;font-size:12px;">
+                    <strong>An allowlist goes stale — decide what a new agent inherits</strong>
+                    This is a list of specific agent IDs, so an AI agent created <em>after</em> the role
+                    is configured belongs to no list and is invisible to this role until an admin edits
+                    it back in. That is the correct least-privilege default, but it is a real
+                    operational cost and it is silent — the admin who creates the agent is often not the
+                    admin who owns the role. Needs an explicit product decision: silent exclusion,
+                    a warning at agent creation, or an "include new agents" opt-in.
+                  </div>
+                  <div class="callout warn" style="margin:12px 0 0;font-size:12px;">
+                    <strong>This one is an instance list, not an attribute condition</strong>
+                    Ownership and brand scoping compare an attribute on the resource
+                    (<em>owner_id</em>, <em>brand_id</em>). This compares the resource's own identity
+                    against a stored set, so the set has to live somewhere and be passed into the
+                    policy evaluation. Precedent: group ID is absent from the auth token and is passed
+                    explicitly in <em>request_data</em>. Confirm with Esa whether the permitted set is
+                    a policy-statement condition on the role or something the product supplies per
+                    request — the answer changes who stores it and who keeps it in sync.
+                  </div>
+                </div>
 
                 <label class="opt"><input type="radio" name="ow" value="brand" onchange="onOwner()">
                   <span><span class="ot">Manage AI agents for a brand</span>
@@ -516,14 +600,17 @@ select.sel:disabled { background:#f8f9f9; color:#87929d; cursor:not-allowed; }
                   <span class="od">No ownership or brand restriction.</span></span></label>
 
                 <div class="callout warn" style="margin:12px 0 0;font-size:12px;">
-                  <strong>Blocked on an upstream gap</strong>
-                  The enforcement mechanism for this exists — conditional scopes return filter
-                  expressions the product applies to its queries. What does not exist is
+                  <strong>Brand scoping is blocked on an upstream gap — selected agents is not</strong>
+                  The enforcement mechanism exists for all of these — conditional scopes return
+                  filter expressions the product applies to its queries. What does not exist is
                   <strong>brand as an attribute on an AI agent</strong>. Today brand selection at
-                  agent creation scopes the knowledge base only; it does not control access.
-                  Precedent: group ID is absent from the auth token and has to be passed explicitly,
-                  so brand identity would likely need the same. This control cannot ship until brand
-                  becomes an access-control attribute.
+                  agent creation scopes the knowledge base only; it does not control access, so the
+                  <em>brand</em> option cannot ship until that changes.
+                  <br><br>
+                  <strong>Manage selected AI agents does not have that dependency</strong> — the AI
+                  agent is the resource itself, so there is no new attribute to expose. That makes it
+                  the cheapest of the three scoping options to enforce and the one most likely to fit
+                  a subsequent release.
                 </div>
               </div>
 
@@ -771,14 +858,34 @@ function onAccess(){
 }
 
 function onOwner(){
-  q('#brandPicker').style.display = val('ow') === 'brand' ? '' : 'none';
+  const o = val('ow');
+  q('#brandPicker').style.display = o === 'brand' ? '' : 'none';
+  q('#agentPicker').style.display = o === 'selected' ? '' : 'none';
   render();
+}
+
+/* selected-agent helpers */
+const qa = s => Array.from(document.querySelectorAll(s));
+function selectedAgents(){
+  return qa('.agentChk').filter(c => c.checked)
+    .map(c => ({id: c.value, name: c.dataset.name}));
+}
+function filterAgents(){
+  const t = (q('#agentSearch').value || '').toLowerCase();
+  qa('#agentScroll .agentrow').forEach(r => {
+    r.style.display = r.textContent.toLowerCase().includes(t) ? '' : 'none';
+  });
 }
 
 function primaryAction(){
   if (scope === 'all' && val('acc') === 'limited' && val('ow') === 'brand' && !q('#brandSel').value){
     toast('⚠ Select a brand before saving');
     q('#brandSel').focus();
+    return;
+  }
+  if (scope === 'all' && val('acc') === 'limited' && val('ow') === 'selected' && !selectedAgents().length){
+    toast('⚠ Select at least one AI agent before saving');
+    q('#agentSearch').focus();
     return;
   }
   if (screen === 'create'){
@@ -860,6 +967,10 @@ function buildModel(){
       const b = q('#brandSel').value;
       own = 'brand_id = ' + (b ? '"' + b + '"' : '⟨none selected⟩');
     }
+    else if (o === 'selected'){
+      const sel = selectedAgents();
+      own = 'id $in [' + (sel.length ? sel.map(a => a.id).join(', ') : '⟨none selected⟩') + ']';
+    }
   }
   let controls = 1;
 
@@ -938,6 +1049,14 @@ function render(){
   q('#mPair').textContent = pairs.size;
   q('#mCond').textContent = cond.size;
 
+  /* selected-agent picker feedback */
+  const sel = selectedAgents();
+  const total = qa('.agentChk').length;
+  q('#agentCount').textContent = sel.length
+    ? sel.length + ' of ' + total + ' AI agents selected'
+    : 'No AI agents selected — the role will have access to no AI agents';
+  q('#agentChips').innerHTML = sel.map(a => '<span class="chip">' + a.name + '</span>').join('');
+
   renderSummary(m);
 }
 
@@ -975,6 +1094,21 @@ function renderSummary(m){
           val('ct') === 'full' ? 'ok' : 'deny');
       const o = val('ow');
       if (o === 'own') row('Ownership and scope', 'Manage only own AI agents', 'deny');
+      else if (o === 'selected'){
+        const sel = selectedAgents();
+        if (!sel.length){
+          row('Ownership and scope',
+            '⚠ Selected AI agents scope chosen but no agents picked — role cannot be saved', 'deny');
+        } else {
+          row('Ownership and scope',
+            'Manage selected AI agents only — ' + sel.length + ' of ' + qa('.agentChk').length +
+            ' agents in this account', 'deny');
+          row('AI agents in scope',
+            sel.map(a => '<div style="margin-bottom:3px;">' + a.name +
+              ' <span style="color:#68737d;font-size:11px;">' + a.id + '</span></div>').join(''), '');
+          row('All other AI agents', 'Not visible and not manageable by this role', 'deny');
+        }
+      }
       else if (o === 'brand'){
         const sel = q('#brandSel');
         const b = sel.value ? sel.options[sel.selectedIndex].text : null;
