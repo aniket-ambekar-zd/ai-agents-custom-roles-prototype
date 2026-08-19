@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agents Permissions in Custom Roles — Prototype v5</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  background:#f8f9f9; color:#2f3941; font-size:14px; line-height:1.43;
+}
+a { color:#1f73b7; text-decoration:none; }
+a:hover { text-decoration:underline; }
+code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.92em; }
+
+/* ---------- prototype banner ---------- */
+.proto-banner {
+  background:#fff7d5; border-bottom:1px solid #efe4a3; padding:9px 20px;
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap; position:sticky; top:0; z-index:200;
+}
+.proto-banner .pb-title { font-weight:600; font-size:13px; color:#5f4e00; }
+.proto-banner .pb-sub { font-size:11px; color:#8a7420; }
+.proto-banner .spacer { flex:1; }
+.seg { display:inline-flex; border:1px solid #c3b464; border-radius:4px; overflow:hidden; }
+.seg button, .seg a {
+  background:#fffdf2; border:none; padding:5px 11px; font-size:12px; cursor:pointer;
+  color:#5f4e00; font-family:inherit; border-right:1px solid #e0d391; white-space:nowrap;
+  display:inline-block; text-decoration:none;
+}
+.seg button:last-child, .seg a:last-child { border-right:none; }
+.seg button.on, .seg a.on { background:#5f4e00; color:#fff; }
+.seg a:hover { text-decoration:none; background:#f7f0cf; }
+.seg a.on:hover { background:#5f4e00; }
+.seg button:disabled { opacity:.4; cursor:not-allowed; }
+
+/* ---------- app chrome ---------- */
+.zd-top {
+  background:#fff; border-bottom:1px solid #e9ebed; height:48px;
+  display:flex; align-items:center; padding:0 16px; gap:16px;
+}
+.zd-logo {
+  width:26px; height:26px; background:#03363d; border-radius:4px; color:#fff;
+  display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px;
+}
+.zd-top .ac { font-weight:600; font-size:14px; }
+.zd-top .acct { color:#68737d; font-size:13px; border-left:1px solid #e9ebed; padding-left:16px; }
+.zd-search {
+  margin-left:auto; width:280px; border:1px solid #d8dcde; border-radius:4px;
+  padding:6px 10px; color:#a0a5a9; font-size:13px; background:#fff;
+}
+.zd-avatar { width:26px; height:26px; border-radius:50%; background:#d8dcde; }
+
+.zd-body { display:flex; min-height:calc(100vh - 106px); align-items:stretch; }
+.zd-rail {
+  width:48px; background:#fff; border-right:1px solid #e9ebed; padding-top:12px;
+  display:flex; flex-direction:column; align-items:center; gap:14px; flex:none;
+}
+.rail-i {
+  width:28px; height:28px; border-radius:4px; background:#f1f3f5;
+  display:flex; align-items:center; justify-content:center; font-size:13px; color:#68737d;
+}
+.rail-i.on { background:#03363d; color:#fff; }
+
+.zd-nav { width:224px; background:#fff; border-right:1px solid #e9ebed; padding:20px 12px; flex:none; }
+.zd-nav h2 { font-size:20px; margin:0 8px 18px; }
+.nav-group { font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:#68737d; margin:18px 8px 6px; font-weight:600; }
+.nav-hr { border-top:1px solid #e9ebed; margin:4px 8px 0; }
+.nav-i { padding:7px 12px; border-radius:4px; color:#2f3941; cursor:default; }
+.nav-i.on { background:#03363d; color:#fff; font-weight:600; }
+
+.zd-main { flex:1; background:#fff; padding:28px 32px 110px; min-width:0; }
+
+/* ---------- annotation rail ---------- */
+.anno {
+  width:340px; flex:none; background:#fbfbfa; border-left:1px solid #e9ebed;
+  padding:20px 20px 110px;
+}
+.anno h3 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:#68737d; margin-bottom:4px; }
+.anno .asub { font-size:12px; color:#87929d; margin-bottom:16px; line-height:1.5; }
+.note { margin-bottom:14px; padding:11px 13px; background:#fff; border:1px solid #e9ebed;
+  border-left:3px solid #1f73b7; border-radius:0 4px 4px 0; font-size:12px; line-height:1.5; }
+.note.warn { border-left-color:#dd7a01; }
+.note.risk { border-left-color:#cc3340; }
+.note .nh { font-weight:600; display:block; margin-bottom:3px; }
+.note .nn { display:inline-block; margin-right:5px; color:#68737d; font-weight:700; }
+body.no-anno .anno { display:none; }
+
+/* ---------- generic ---------- */
+.crumbs { font-size:13px; color:#68737d; margin-bottom:14px; }
+h1.page { font-size:26px; font-weight:600; margin-bottom:6px; }
+.pill { font-size:11px; padding:3px 8px; border-radius:3px; background:#e9f7ef; color:#166b3f; font-weight:600; }
+.pill.sys { background:#f1f3f5; color:#49545c; }
+.learn { font-size:13px; display:inline-block; margin-bottom:24px; }
+label.fld { display:block; font-weight:600; font-size:13px; margin-bottom:6px; }
+input.txt {
+  width:440px; max-width:100%; padding:9px 11px; border:1px solid #d8dcde;
+  border-radius:4px; font-size:14px; font-family:inherit; color:#2f3941;
+}
+input.txt:focus { outline:none; border-color:#1f73b7; box-shadow:0 0 0 3px rgba(31,115,183,.2); }
+.field { margin-bottom:18px; }
+
+h2.sec { font-size:22px; font-weight:600; margin:32px 0 18px; }
+.pgroup { margin-bottom:34px; max-width:700px; }
+.pgroup > h3 { font-size:17px; font-weight:600; margin-bottom:4px; }
+.pgroup > .desc { color:#68737d; margin-bottom:16px; }
+.hint { color:#68737d; font-size:13px; margin-top:2px; }
+
+.opt { display:flex; gap:10px; padding:5px 0; align-items:flex-start; cursor:pointer; }
+.opt input { margin-top:3px; accent-color:#1f73b7; width:15px; height:15px; cursor:pointer; flex:none; }
+.opt .ot { font-size:14px; }
+.opt .od { font-size:12.5px; color:#68737d; margin-top:1px; }
+
+/* ---------- the steps ---------- */
+#aiSection { display:flex; flex-direction:column; }
+.step { border-top:1px solid #e9ebed; padding:18px 0 4px; }
+.step.first { border-top:none; padding-top:4px; }
+.step .sh { display:flex; align-items:baseline; gap:9px; margin-bottom:3px; }
+.step .sn {
+  font-size:11px; font-weight:700; color:#68737d; background:#f1f3f5;
+  width:19px; height:19px; border-radius:50%; display:flex; align-items:center;
+  justify-content:center; flex:none; margin-top:1px;
+}
+.step h4 { font-size:15px; font-weight:600; }
+.step .sd { font-size:12.5px; color:#68737d; margin:0 0 12px 28px; }
+.step .sbody { margin-left:28px; }
+
+.derived { font-size:12px; color:#68737d; margin-top:9px; }
+.derived code { background:#f1f3f5; padding:1px 6px; border-radius:3px; color:#03363d; font-weight:600; }
+
+/* ---------- permission list ---------- */
+.plist { border:1px solid #d8dcde; border-radius:6px; overflow:hidden; margin-bottom:18px; }
+.plisthead {
+  padding:9px 16px; background:#f8f9f9; border-bottom:1px solid #e9ebed;
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#68737d;
+  display:flex; align-items:center; gap:9px;
+}
+.plisthead .sub { text-transform:none; letter-spacing:0; font-weight:400; font-size:11.5px; color:#87929d; }
+.prow { padding:13px 16px 14px; border-top:1px solid #e9ebed; }
+.prow:first-child { border-top:none; }
+.prow.acct { background:#fffdf9; }
+.prow.locked { background:#f8f9f9; }
+.prow .plabel { font-size:13.5px; font-weight:600; }
+.prow .pdesc { font-size:12px; color:#87929d; margin-top:1px; }
+.popts { margin-top:8px; }
+.popts .opt { padding:3px 0; }
+.popts .ot { font-size:13px; }
+.popts .od { font-size:11.5px; color:#87929d; }
+.popts .opt input { margin-top:2px; width:14px; height:14px; }
+.lockline { margin-top:7px; font-size:12.5px; color:#68737d; }
+.sbadge {
+  font-size:10px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+  padding:2px 6px; border-radius:3px; margin-left:7px; white-space:nowrap;
+  background:#eef4f4; color:#4a6c6f;
+}
+.sbadge.acct { background:#fdefdc; color:#8a4b00; }
+.sbadge.new  { background:#e9f7ef; color:#166b3f; }
+.bulkbar { display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:12.5px;
+  color:#68737d; background:#f8f9f9; border:1px solid #e9ebed; border-radius:5px; padding:8px 12px;
+  flex-wrap:wrap; }
+.bulkbar .lnk { color:#1f73b7; cursor:pointer; font-weight:500; }
+.bulkbar .lnk:hover { text-decoration:underline; }
+.eqline { font-size:12.5px; margin-top:2px; padding:9px 12px; border-radius:4px;
+  background:#f4faff; border:1px solid #d5e7f5; color:#1a4f80; }
+.eqline.target { background:#e9f7ef; border-color:#bfe3ce; color:#12603a; }
+.eqline.warn { background:#fdf3e6; border-color:#f0d9b5; color:#8a4b00; }
+.eqline b { font-weight:700; }
+
+.tag { font-size:10px; font-weight:700; letter-spacing:.04em; padding:2px 6px; border-radius:3px;
+  margin-left:7px; text-transform:uppercase; }
+.tag.v1 { background:#e9f7ef; color:#166b3f; }
+.tag.next { background:#f1e4f5; color:#6b2f7a; }
+.tag.blk { background:#fbe9ea; color:#8c232c; }
+
+/* agent picker */
+.agentbox { border:1px solid #d8dcde; border-radius:6px; max-width:400px; }
+.agentsearch { width:100%; border:0; border-bottom:1px solid #e9ebed; padding:8px 10px;
+  font:inherit; font-size:13px; border-radius:6px 6px 0 0; outline:none; }
+.agentscroll { max-height:164px; overflow-y:auto; padding:4px 0; }
+.agentrow { display:flex; align-items:center; gap:8px; padding:5px 10px; font-size:13px; cursor:pointer; }
+.agentrow:hover { background:#f8f9f9; }
+.agentrow input { margin:0; flex:none; }
+.agentrow .abrand { margin-left:auto; color:#87929d; font-size:11px; }
+.selcount { padding:6px 10px; border-top:1px solid #e9ebed; background:#f8f9f9;
+  font-size:12px; color:#68737d; }
+.defblock { margin-bottom:16px; }
+.defblock > .dl { font-weight:600; font-size:13px; margin-bottom:5px; }
+.defblock > .dw { font-size:11.5px; color:#87929d; margin-bottom:7px; }
+
+select.sel { width:100%; padding:9px 11px; border:1px solid #d8dcde; border-radius:4px;
+  font-family:inherit; font-size:14px; background:#fff; color:#2f3941; }
+
+.footer-bar {
+  position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid #e9ebed;
+  padding:13px 32px; display:flex; justify-content:flex-end; gap:14px; z-index:150;
+}
+.btn { padding:9px 20px; border-radius:20px; border:1px solid transparent; font-size:14px;
+  font-family:inherit; cursor:pointer; font-weight:500; }
+.btn.primary { background:#17494d; color:#fff; }
+.btn.primary:hover { background:#03363d; }
+.btn.blue { background:#1f73b7; color:#fff; border-radius:4px; }
+.btn.ghost { background:transparent; color:#2f3941; }
+
+table.roles { width:100%; border-collapse:collapse; margin-top:14px; }
+table.roles th { text-align:left; font-size:13px; font-weight:600; padding:10px 12px;
+  border-bottom:1px solid #d8dcde; }
+table.roles td { padding:12px; border-bottom:1px solid #e9ebed; font-size:14px; }
+table.roles tr.hl td { background:#f4faff; }
+.dots { color:#68737d; }
+
+.srow { display:flex; padding:10px 14px; border-bottom:1px solid #e9ebed; font-size:13px; }
+.srow .sl { width:230px; color:#68737d; flex:none; }
+.srow .sv { flex:1; }
+.srow .sv.deny { color:#8c232c; }
+.srow .sv.ok { color:#166b3f; }
+
+.toast { position:fixed; bottom:84px; left:50%; transform:translateX(-50%);
+  background:#2f3941; color:#fff; padding:11px 18px; border-radius:4px; font-size:13px;
+  z-index:400; display:flex; gap:9px; }
+.toast.hide { display:none; }
+
+/* ---------- under the hood ---------- */
+.hood-tab { position:fixed; right:0; top:50%; transform:translateY(-50%) rotate(180deg);
+  writing-mode:vertical-rl; background:#03363d; color:#fff; padding:15px 9px;
+  border-radius:6px 0 0 6px; cursor:pointer; font-size:11.5px; font-weight:600;
+  letter-spacing:.05em; z-index:180; }
+.hood { position:fixed; right:0; top:0; bottom:0; width:430px; background:#03363d; color:#e8f0f0;
+  z-index:190; padding:22px 24px; overflow-y:auto; }
+.hood.hide { display:none; }
+.hood h3 { font-size:15px; color:#fff; margin-bottom:6px; display:flex; }
+.hood h3 .x { margin-left:auto; cursor:pointer; opacity:.7; }
+.hood p.hd { font-size:12px; color:#9fb8ba; margin-bottom:16px; line-height:1.5; }
+.hood h4 { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#7fa6a9; margin:18px 0 7px; }
+.hood h4 .sub { text-transform:none; letter-spacing:0; color:#5f8a8d; font-weight:400; }
+.perm { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px;
+  background:rgba(255,255,255,.07); padding:5px 9px; border-radius:3px; margin-bottom:3px;
+  display:flex; gap:8px; align-items:center; }
+.perm .rs { color:#8fd6c0; } .perm .sc { color:#f5c86e; }
+.perm .cond { color:#c9a0dc; font-size:11px; margin-left:auto; text-align:right; }
+.perm.denied { opacity:.4; text-decoration:line-through; }
+.perm.acct { border-left:3px solid #dd7a01; }
+.perm.gap  { border-left:3px solid #cc3340; }
+.hood .none { font-size:12px; color:#7fa6a9; font-style:italic; }
+.hood .metric { display:flex; justify-content:space-between; gap:12px; font-size:12px;
+  padding:5px 0; border-bottom:1px solid rgba(255,255,255,.08); }
+.hood .metric b { color:#fff; text-align:right; }
+.hood .metric b.ok { color:#8fd6c0; } .hood .metric b.no { color:#f0a0a6; }
+.hood .w { padding:9px 12px; font-size:11.5px; margin-top:10px; line-height:1.5;
+  border-radius:0 3px 3px 0; }
+.hood .w.warn { background:rgba(221,122,1,.15); border-left:3px solid #dd7a01; }
+.hood .w.risk { background:rgba(204,51,64,.18); border-left:3px solid #cc3340; }
+.hood .w.ok   { background:rgba(143,214,192,.12); border-left:3px solid #8fd6c0; }
+.hood .w b { color:#fff; }
+
+.hide { display:none !important; }
+</style>
+</head>
+<body class="no-anno">
+
+<!-- ================= PROTOTYPE BANNER ================= -->
+<div class="proto-banner">
+  <div>
+    <div class="pb-title">⚠️ PROTOTYPE — AI Agents Permissions in Custom Roles</div>
+    <div class="pb-sub">v5, Aug 2026 — access level maps to an entitlement role; Restricted opens the delta.</div>
+  </div>
+  <div class="spacer"></div>
+  <div>
+    <div class="pb-sub" style="margin-bottom:3px;">Version</div>
+    <div class="seg">
+      <a href="index.html">v4 — exclusion / end state</a>
+      <a href="v5.html" class="on">v5 — role-delta</a>
+    </div>
+  </div>
+  <div>
+    <div class="pb-sub" style="margin-bottom:3px;">Release</div>
+    <div class="seg">
+      <button id="btnV1" class="on" onclick="setRel('v1')">Release 1</button>
+      <button id="btnAll" onclick="setRel('all')">+ Later</button>
+    </div>
+  </div>
+  <div>
+    <div class="pb-sub" style="margin-bottom:3px;">Screen</div>
+    <div class="seg">
+      <button id="nav1" class="on" onclick="go('list')">1 · Roles</button>
+      <button id="nav2" onclick="go('create')">2 · Create</button>
+      <button id="nav3" onclick="go('edit')">3 · Saved</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= APP CHROME ================= -->
+<div class="zd-top">
+  <div class="zd-logo">Z</div>
+  <span class="ac">Admin center ⌄</span>
+  <span class="acct">z3nssobrandtesting178541…</span>
+  <div class="zd-search">🔍 Search admin center</div>
+  <div class="zd-avatar"></div>
+</div>
+
+<div class="zd-body">
+  <div class="zd-rail">
+    <div class="rail-i">⌂</div><div class="rail-i">▦</div><div class="rail-i on">👥</div>
+    <div class="rail-i">➤</div><div class="rail-i">✦</div><div class="rail-i">▭</div>
+  </div>
+
+  <div class="zd-nav">
+    <h2>People</h2>
+    <div class="nav-group">Team</div><div class="nav-hr"></div>
+    <div class="nav-i">Team members</div>
+    <div class="nav-i on">Roles</div>
+    <div class="nav-i">Groups</div>
+    <div class="nav-group">Configuration</div><div class="nav-hr"></div>
+    <div class="nav-i">User fields</div>
+    <div class="nav-i">Organization fields</div>
+    <div class="nav-i">End users</div>
+    <div class="nav-i">Tags</div>
+  </div>
+
+  <div class="zd-main">
+
+    <!-- ============ SCREEN 1 : ROLES LIST ============ -->
+    <div id="scr-list">
+      <div class="crumbs">People &nbsp;›&nbsp; Team &nbsp;›&nbsp; Roles</div>
+      <div style="display:flex;align-items:flex-start;">
+        <div>
+          <h1 class="page">Roles</h1>
+          <p style="color:#68737d;">Create, assign, and manage roles for your team.</p>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:18px;align-items:center;">
+          <a href="#" onclick="return false">Compare roles</a>
+          <button class="btn blue" onclick="go('create')">Create role</button>
+        </div>
+      </div>
+
+      <p style="margin-top:24px;color:#68737d;font-size:13px;">7 roles</p>
+      <table class="roles">
+        <thead><tr>
+          <th style="width:28%">Name ▴</th><th style="width:12%">Type</th>
+          <th style="width:14%">Team members</th><th>Description</th><th style="width:36px"></th>
+        </tr></thead>
+        <tbody>
+          <tr class="hl" id="rowNew" style="display:none;">
+            <td><a href="#" onclick="go('edit');return false;" id="newRoleName">AI Agent Admin — No credentials</a></td>
+            <td><span class="pill">Custom</span></td>
+            <td>0</td>
+            <td id="newRoleDesc">Full AI agent administration without API integration access</td>
+            <td class="dots">⋮</td>
+          </tr>
+          <tr><td>Admin</td><td><span class="pill sys">System</span></td><td>1</td><td>Can manage all settings, except billing</td><td class="dots">⋮</td></tr>
+          <tr><td>Advisor</td><td><span class="pill">Custom</span></td><td>0</td><td>Can automate ticket workflows and manage channels</td><td class="dots">⋮</td></tr>
+          <tr><td>Contributor</td><td><span class="pill sys">System</span></td><td>0</td><td>Can provide limited support</td><td class="dots">⋮</td></tr>
+          <tr><td>Light agent</td><td><span class="pill sys">System</span></td><td>0</td><td>Can view and add private comments to tickets</td><td class="dots">⋮</td></tr>
+          <tr><td>Staff</td><td><span class="pill">Custom</span></td><td>0</td><td>Can edit tickets within their groups</td><td class="dots">⋮</td></tr>
+          <tr><td>Team lead</td><td><span class="pill">Custom</span></td><td>0</td><td>Can manage all tickets and forums</td><td class="dots">⋮</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ============ SCREEN 2 : CREATE ROLE ============ -->
+    <div id="scr-create" class="hide">
+      <div class="crumbs">People &nbsp;›&nbsp; Team &nbsp;›&nbsp; Roles &nbsp;›&nbsp; Create role</div>
+      <h1 class="page">Create role</h1>
+      <a class="learn" href="#" onclick="return false">Learn about role permissions ↗</a>
+
+      <div class="field">
+        <label class="fld" for="rName">Name* (required)</label>
+        <input class="txt" id="rName" value="AI Agent Admin — No credentials">
+      </div>
+      <div class="field">
+        <label class="fld" for="rDesc">Description</label>
+        <input class="txt" id="rDesc" value="Full AI agent administration without API integration access">
+      </div>
+
+      <h2 class="sec">Permissions</h2>
+
+      <div class="pgroup" style="opacity:.5;">
+        <h3>Tickets</h3><div class="desc">Choose the ticket permissions for this role.</div>
+        <div class="hint">— existing section, unchanged —</div>
+      </div>
+      <div class="pgroup" style="opacity:.5;">
+        <h3>People</h3><div class="desc">Choose the people permissions for this role.</div>
+        <div class="hint">— existing section, unchanged —</div>
+      </div>
+
+      <!-- ============ THE NEW SECTION ============ -->
+      <div class="pgroup" id="aiSection">
+        <h3 style="order:0;">AI agents <span class="tag v1">New</span></h3>
+        <div class="desc" style="order:0;">Choose the AI agent permissions for this role.
+          <a href="#" onclick="return false">Learn about AI agent permissions ↗</a></div>
+
+        <!-- ---------- 1 · ACCESS LEVEL ---------- -->
+        <div class="step first" style="order:1;">
+          <div class="sh"><span class="sn">1</span><h4>Access level</h4></div>
+          <div class="sd">How much of AI agents this role can reach.</div>
+          <div class="sbody">
+            <label class="opt">
+              <input type="radio" name="lvl" value="none" checked onchange="onLevel()">
+              <span><span class="ot">No access</span>
+              <span class="od">Cannot open AI agents.</span></span>
+            </label>
+            <label class="opt">
+              <input type="radio" name="lvl" value="full" onchange="onLevel()">
+              <span><span class="ot">Full access</span>
+              <span class="od">Every AI agent capability, including ones released later. No
+                per-capability choices to make.</span></span>
+            </label>
+            <label class="opt">
+              <input type="radio" name="lvl" value="restricted" onchange="onLevel()">
+              <span><span class="ot">Restricted access</span>
+              <span class="od">Can build and manage AI agents within the scope set below. Additional
+                capabilities are granted individually.</span></span>
+            </label>
+            <div class="derived" id="s1Derived">Resolves to entitlement role:
+              <code id="derivedRole">none</code> <span id="derivedNote"></span></div>
+          </div>
+        </div>
+
+        <!-- ---------- 2 · SCOPE ---------- -->
+        <div class="step hide" id="step2" style="order:2;">
+          <div class="sh"><span class="sn">2</span><h4>Which AI agents</h4></div>
+          <div class="sd">Everything this role can do applies only inside this set.</div>
+          <div class="sbody">
+            <label class="opt">
+              <input type="radio" name="bnd" value="brand" onchange="onBoundary()">
+              <span><span class="ot">All AI agents in one brand <span class="tag blk" id="brandTag">Blocked</span></span>
+              <span class="od" id="brandOd">Brand is not an access-control attribute on an AI agent
+                today.</span></span>
+            </label>
+            <label class="opt">
+              <input type="radio" name="bnd" value="selected" onchange="onBoundary()">
+              <span><span class="ot">Specific AI agents</span>
+              <span class="od">An explicit list. The only restriction the entitlement role is
+                believed to carry today — unverified.</span></span>
+            </label>
+            <label class="opt">
+              <input type="radio" name="bnd" value="all" checked onchange="onBoundary()">
+              <span><span class="ot">All AI agents in the account</span>
+              <span class="od">No scope restriction.</span></span>
+            </label>
+
+            <div class="defblock hide" id="brandPicker" style="margin-top:12px;">
+              <div class="dl">Brand</div>
+              <select class="sel" id="brandSel" style="width:300px;" onchange="render()">
+                <option value="">Select a brand…</option>
+                <option value="brand_a">Brand A — Support</option>
+                <option value="brand_b">Brand B — Japan</option>
+                <option value="brand_c">Brand C — EMEA</option>
+              </select>
+            </div>
+
+            <div class="defblock hide" id="agentPicker" style="margin-top:12px;">
+              <div class="dl">AI agents</div>
+              <div class="dw">An explicit list. It does not follow AI agents created later — see the
+                staleness note in Under the hood.</div>
+              <div class="agentbox">
+                <input class="agentsearch" placeholder="🔍 Search AI agents">
+                <div class="agentscroll" id="agentScroll">
+                  <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_1042" data-name="Support Bot" onchange="render()"><span>Support Bot</span><span class="abrand">Brand A</span></label>
+                  <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_1043" data-name="Billing Assistant" onchange="render()"><span>Billing Assistant</span><span class="abrand">Brand A</span></label>
+                  <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_1044" data-name="Order Tracking Bot" onchange="render()"><span>Order Tracking Bot</span><span class="abrand">Brand A</span></label>
+                  <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_2011" data-name="JP Helpdesk" onchange="render()"><span>JP Helpdesk</span><span class="abrand">Brand B</span></label>
+                  <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_2012" data-name="JP Returns Bot" onchange="render()"><span>JP Returns Bot</span><span class="abrand">Brand B</span></label>
+                  <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_3007" data-name="EMEA Tier 1 Bot" onchange="render()"><span>EMEA Tier 1 Bot</span><span class="abrand">Brand C</span></label>
+                  <label class="agentrow"><input type="checkbox" class="agentChk" value="agent_3008" data-name="Data Requests Bot" onchange="render()"><span>Data Requests Bot</span><span class="abrand">Brand C</span></label>
+                </div>
+                <div class="selcount" id="selCount">0 selected</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ---------- 3 · CAPABILITIES ---------- -->
+        <div class="step hide" id="step3" style="order:3;">
+          <div class="sh"><span class="sn">3</span><h4>Capabilities</h4></div>
+          <div class="sd">Restricted access already includes building and managing AI agents. These
+            capabilities are additional, and are off until you turn them on.</div>
+          <div class="sbody">
+
+            <div class="bulkbar">
+              <span>Shortcuts:</span>
+              <span class="lnk" onclick="preset('nothing')">Nothing added</span>
+              <span class="lnk" onclick="preset('everything')">Match full access</span>
+              <span class="lnk" onclick="preset('nocreds')">Match full access, no API integrations</span>
+            </div>
+
+            <div class="plist">
+              <div class="plisthead">Additional capabilities
+                <span class="sub">— off by default. Each one must be granted explicitly.</span></div>
+              <div id="deltaRows"></div>
+            </div>
+
+            <div class="eqline" id="eqLine"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pgroup" style="opacity:.5;">
+        <h3>Channels</h3><div class="desc">Choose the channel permissions for this role.</div>
+        <div class="hint">— existing section, unchanged —</div>
+      </div>
+    </div>
+
+    <!-- ============ SCREEN 3 : SAVED ROLE ============ -->
+    <div id="scr-edit" class="hide">
+      <div class="crumbs">People &nbsp;›&nbsp; Team &nbsp;›&nbsp; Roles &nbsp;›&nbsp; <span id="editCrumb">Role</span></div>
+      <h1 class="page" id="editTitle">AI Agent Admin — No credentials</h1>
+      <p style="color:#68737d;margin-bottom:22px;">What this role resolves to.</p>
+      <div style="border:1px solid #d8dcde;border-radius:6px;max-width:700px;overflow:hidden;"
+           id="summaryRows"></div>
+    </div>
+
+  </div><!-- /zd-main -->
+
+  <!-- ================= ANNOTATION RAIL ================= -->
+  <div class="anno">
+    <h3>PM notes</h3>
+    <div class="asub" id="annoSub"></div>
+    <div id="annoBody"></div>
+  </div>
+</div>
+
+<div class="footer-bar">
+  <button class="btn ghost" onclick="go('list')">Cancel</button>
+  <button class="btn primary" id="primaryBtn" onclick="primaryAction()">Save</button>
+</div>
+
+<div class="toast hide" id="toast"><span>✓</span><span id="toastMsg"></span></div>
+
+<!-- ================= UNDER THE HOOD ================= -->
+<div class="hood-tab" id="hoodTab" onclick="toggleHood()">UNDER THE HOOD ◂</div>
+<div class="hood hide" id="hood">
+  <h3>Under the hood <span class="x" onclick="toggleHood()">✕</span></h3>
+  <p class="hd"><b>The access level maps to an entitlement role. The capability list is the
+    delta.</b> Full access resolves 1:1. Restricted access resolves to the standard role and the
+    Decision API carries everything added on top.</p>
+
+  <h4>Resolves to</h4>
+  <div class="metric"><span>Entitlement role</span><b id="hRole">none</b></div>
+  <div class="metric"><span>Scope</span><b id="hBnd">—</b></div>
+  <div class="metric"><span>Equivalent to</span><b id="hEq">—</b></div>
+  <div class="metric"><span>New capabilities as they ship</span><b id="hFollow">—</b></div>
+
+  <h4>Stored — inclusion set <span class="sub">what we persist</span></h4>
+  <div id="hoodGrant"></div>
+
+  <h4>Granted here, not carried by the entitlement role
+    <span class="sub">the enforcement gap</span></h4>
+  <div id="hoodGap"></div>
+
+  <h4>Cost</h4>
+  <div class="metric"><span>Admin-facing controls</span><b id="mCtrl">0</b></div>
+  <div class="metric"><span>Distinct resources</span><b id="mRes">0</b></div>
+  <div class="metric"><span><code>resource:scope</code> pairs</span><b id="mPair">0</b></div>
+  <div class="metric"><span>Account-wide pairs <span style="color:#dd7a01;">(unscopeable)</span></span><b id="mAcct">0</b></div>
+  <div class="metric"><span>New permission specs this release needs</span><b id="mSpec">0</b></div>
+  <div class="metric hide" id="mCostRow"><span>At the current per-permission estimate</span><b id="mCost">—</b></div>
+
+  <div id="hoodWarns"></div>
+</div>
+
+<script>
+/* =================== ANNOTATIONS ===================
+   Populated only in the local annotated build. */
+const ANNOS = [];
+
+/* =================== MODEL =================== */
+
+/* What Restricted access includes before anything is added — i.e. what clientUser already carries.
+   Deliberately NOT shown as controls: they come with the level and are not separately configurable.
+   Kept here because the role genuinely grants these pairs, so they belong in the inclusion set. */
+const BASE = [
+  { k:'build', label:'Build and manage AI agents',
+    desc:'Create, edit and publish.',
+    pairs:[['ai_agent','read'],['ai_agent','write'],['ai_agent','create'],['ai_agent','publish']] },
+  { k:'delete', label:'Delete AI agents',
+    desc:'The one irreversible action.',
+    pairs:[['ai_agent','delete']] },
+  { k:'content', label:'Manage intents, use cases, templates, actions, segments',
+    desc:'Content management inside an AI agent.',
+    pairs:[['ai_agent_intent','write'],['ai_agent_use_case','write'],['ai_agent_template','write'],
+           ['ai_agent_action','write'],['ai_agent_segment','write']] },
+  { k:'analytics', label:'View analytics and conversation logs',
+    desc:'Read-only reporting.',
+    pairs:[['ai_agent_analytics','read']] },
+  { k:'settings', label:'Manage AI agent settings',
+    desc:'Per-agent languages, hours, handover.',
+    pairs:[['ai_agent_setting','read'],['ai_agent_setting','write']] }
+];
+
+/* Added capabilities — the difference between the standard role and full access.
+   All default to No access. Granting all four makes the role full-access-equivalent. */
+const DELTA = [
+  { k:'integrations', label:'API integrations', applies:'account', rel:'v1',
+    desc:'Configurations, credentials, headers and keys. Affects every AI agent — cannot be scoped.',
+    view:[['ai_agent_integration','read']],
+    full:[['ai_agent_integration','read'],['ai_agent_integration','read_credentials'],
+          ['ai_agent_integration','write'],['ai_agent_integration','create'],
+          ['ai_agent_integration','delete']],
+    viewDesc:'Can see that an integration exists. Never the credentials.',
+    fullDesc:'Includes creating, editing and reading credentials.' },
+
+  { k:'knowledge', label:'Knowledge sources', applies:'scope', rel:'v1', uncertain:true,
+    desc:'Connected help centres, files and web sources.',
+    view:[['ai_agent_knowledge_source','read']],
+    full:[['ai_agent_knowledge_source','read'],['ai_agent_knowledge_source','write'],
+          ['ai_agent_knowledge_source','create'],['ai_agent_knowledge_source','delete']],
+    viewDesc:'Can see which sources are connected.',
+    fullDesc:'Can connect, edit and remove sources.' },
+
+  { k:'personalization', label:'Personalization', applies:'scope', rel:'v1',
+    desc:'Tone, persona and greeting.',
+    view:[['ai_agent_personalization','read']],
+    full:[['ai_agent_personalization','read'],['ai_agent_personalization','write']],
+    viewDesc:'Can see the configuration.',
+    fullDesc:'Can change tone, persona and greeting.' },
+
+  { k:'adminsettings', label:'Admin settings', applies:'account', rel:'v1',
+    desc:'Account-wide AI agent configuration. Affects every AI agent — cannot be scoped.',
+    view:[['ai_agent_admin_setting','read']],
+    full:[['ai_agent_admin_setting','read'],['ai_agent_admin_setting','write']],
+    viewDesc:'Read-only view of account-wide configuration.',
+    fullDesc:'Can change account-wide configuration.' },
+
+  /* --- later releases --- */
+  { k:'webhooks', label:'Manage webhooks', applies:'account', rel:'next',
+    desc:'Account-scoped endpoints.',
+    view:[['ai_agent_webhook','read']],
+    full:[['ai_agent_webhook','read'],['ai_agent_webhook','write']],
+    viewDesc:'Can see configured endpoints.',
+    fullDesc:'Can create and edit endpoints.' },
+  { k:'genai', label:'Account-wide generative AI settings', applies:'account', rel:'next',
+    desc:'Model, tone and safety defaults for every AI agent.',
+    view:[['ai_agent_generative_setting','read']],
+    full:[['ai_agent_generative_setting','read'],['ai_agent_generative_setting','write']],
+    viewDesc:'Read-only.',
+    fullDesc:'Can change account-wide generative defaults.' }
+];
+
+/* Effort-per-permission figures are internal and are supplied by the local build only. */
+const EFFORT = null;
+
+let rel    = 'v1';      /* v1 | all */
+let screen = 'list';
+
+const q  = s => document.querySelector(s);
+const qa = s => [...document.querySelectorAll(s)];
+const val = n => { const e = q('input[name="'+n+'"]:checked'); return e ? e.value : null; };
+
+function activeDelta(){ return DELTA.filter(c => rel === 'all' || c.rel === 'v1'); }
+function brandBlocked(){ return rel !== 'all'; }
+
+/* =================== ROW BUILDING =================== */
+
+function rowName(c){ return 'p_' + c.k; }
+function rowVal(c){ const v = val(rowName(c)); return v === null ? 'none' : v; }
+
+function buildRows(){
+  q('#deltaRows').innerHTML = activeDelta().map(c => {
+    const acct = c.applies === 'account';
+    const badge = acct
+      ? '<span class="sbadge acct">⚠ All AI agents</span>'
+      : '<span class="sbadge">Within scope</span>';
+    const later = c.rel === 'next' ? '<span class="tag next">Later</span>' : '';
+    return '<div class="prow' + (acct ? ' acct' : '') + '">'
+      + '<div class="plabel">' + c.label + badge + later + '</div>'
+      + '<div class="pdesc">' + c.desc + '</div>'
+      + '<div class="popts">'
+      + optHtml(rowName(c), 'none', 'No access', '', true)
+      + optHtml(rowName(c), 'view', 'View only', c.viewDesc, false)
+      + optHtml(rowName(c), 'full', 'Full access', c.fullDesc, false)
+      + '</div>'
+      + (c.uncertain
+          ? '<div class="lockline">⚠ Whether this is scopeable per AI agent is not confirmed.</div>'
+          : '')
+      + '</div>';
+  }).join('');
+}
+
+function optHtml(name, v, label, desc, checked){
+  return '<label class="opt"><input type="radio" name="' + name + '" value="' + v + '"'
+    + (checked ? ' checked' : '') + ' onchange="render()">'
+    + '<span><span class="ot">' + label + '</span>'
+    + (desc ? '<span class="od">' + desc + '</span>' : '')
+    + '</span></label>';
+}
+
+/* =================== PRESETS =================== */
+
+function setRow(c, v){
+  const el = document.querySelector('input[name="' + rowName(c) + '"][value="' + v + '"]');
+  if (el) el.checked = true;
+}
+
+function preset(kind){
+  if (val('lvl') !== 'restricted') return;
+  activeDelta().forEach(c => {
+    if (kind === 'nothing') setRow(c, 'none');
+    else if (kind === 'everything') setRow(c, 'full');
+    else if (kind === 'nocreds') setRow(c, c.k === 'integrations' ? 'none' : 'full');
+  });
+  render();
+  if (kind === 'nocreds') toast('Full-access-equivalent, with API integrations withheld');
+}
+
+/* =================== HANDLERS =================== */
+
+function setRel(r){
+  rel = r;
+  q('#btnV1').classList.toggle('on', r === 'v1');
+  q('#btnAll').classList.toggle('on', r === 'all');
+  q('#brandTag').classList.toggle('hide', !brandBlocked());
+  q('#brandOd').textContent = brandBlocked()
+    ? 'Brand is not an access-control attribute on an AI agent today.'
+    : 'Every AI agent belonging to one brand.';
+  if (brandBlocked() && val('bnd') === 'brand') setBnd('all');
+  buildRows();
+  onLevel();
+}
+
+function setBnd(v){
+  const el = document.querySelector('input[name="bnd"][value="' + v + '"]');
+  if (el) el.checked = true;
+}
+
+function onLevel(){
+  const lvl = val('lvl');
+  q('#step2').classList.toggle('hide', lvl === 'none');
+  q('#step3').classList.toggle('hide', lvl !== 'restricted');
+  if (lvl === 'restricted') preset('nothing'); else render();
+}
+
+function onBoundary(){
+  const b = val('bnd');
+  q('#brandPicker').classList.toggle('hide', b !== 'brand');
+  q('#agentPicker').classList.toggle('hide', b !== 'selected');
+  render();
+}
+
+/* =================== DERIVATION =================== */
+
+function selectedAgents(){
+  return qa('.agentChk').filter(c => c.checked).map(c => c.dataset.name);
+}
+
+function scopeLabel(){
+  const b = val('bnd');
+  if (b === 'all') return 'All AI agents in the account';
+  if (b === 'brand'){
+    const s = q('#brandSel');
+    return 'Brand — ' + (s.value ? s.options[s.selectedIndex].text : 'none selected');
+  }
+  const n = selectedAgents().length;
+  return n ? n + ' specific AI agent' + (n === 1 ? '' : 's') : 'no AI agents selected';
+}
+
+function derivedEntitlement(){
+  const lvl = val('lvl');
+  if (lvl === 'none')  return { role:'none', note:'— no AI Agents entitlement consumed' };
+  if (lvl === 'full')  return val('bnd') === 'all'
+    ? { role:'clientAdmin', note:'— clean 1:1 mapping' }
+    : { role:'clientAdmin', note:'— ⚠ scope carried outside the role' };
+  return { role:'clientUser', note:'— the standard role. Anything added sits above it.' };
+}
+
+/* What the configuration amounts to, in role terms. */
+function equivalence(){
+  const lvl = val('lvl');
+  if (lvl === 'none') return { txt:'No AI agent access', cls:'' };
+  if (lvl === 'full') return { txt:'clientAdmin — every capability', cls:'target' };
+
+  const act = activeDelta();
+  const granted = act.filter(c => rowVal(c) !== 'none');
+
+  if (!granted.length)
+    return { txt:'Exactly clientUser — nothing added', cls:'' };
+
+  const withheld = act.filter(c => rowVal(c) !== 'full');
+
+  if (!withheld.length)
+    return { txt:'Full-access-equivalent — same capabilities as clientAdmin', cls:'warn' };
+
+  /* Everything granted bar one or two — the shape the first release is aimed at. */
+  if (withheld.length <= 2){
+    const names = withheld.map(c => c.label + (rowVal(c) === 'view' ? ' (view only)' : '')).join(', ');
+    const isTarget = withheld.length === 1 && withheld[0].k === 'integrations'
+                     && rowVal(withheld[0]) === 'none';
+    return {
+      txt:'Full access except: ' + names + (isTarget ? '  ← first-release target configuration' : ''),
+      cls: isTarget ? 'target' : 'warn'
+    };
+  }
+
+  return { txt:'clientUser plus ' + granted.length + ' additional capabilit'
+              + (granted.length === 1 ? 'y' : 'ies'), cls:'' };
+}
+
+/* Pairs granted by this role. */
+function grantedPairs(){
+  const lvl = val('lvl');
+  const out = [];
+  if (lvl === 'none') return out;
+
+  if (lvl === 'full'){
+    BASE.forEach(c => c.pairs.forEach(p => out.push({ p, acct:false, from:c.label })));
+    activeDelta().forEach(c => c.full.forEach(p =>
+      out.push({ p, acct:c.applies === 'account', from:c.label })));
+    return out;
+  }
+
+  BASE.forEach(c => c.pairs.forEach(p => out.push({ p, acct:false, from:c.label })));
+  activeDelta().forEach(c => {
+    const v = rowVal(c);
+    if (v === 'none') return;
+    (v === 'view' ? c.view : c.full).forEach(p =>
+      out.push({ p, acct:c.applies === 'account', from:c.label, added:true }));
+  });
+  return out;
+}
+
+/* Pairs the Custom Role grants that the derived entitlement role does not carry.
+   Under Restricted access the derived role is the standard one, so every added
+   capability falls into this set. */
+function gapPairs(){
+  if (val('lvl') !== 'restricted') return [];
+  return grantedPairs().filter(g => g.added);
+}
+
+/* =================== RENDER =================== */
+
+function permHtml(g, cls){
+  return '<div class="perm ' + (cls || '') + (g.acct ? ' acct' : '') + '">'
+    + '<span class="rs">' + g.p[0] + '</span>:<span class="sc">' + g.p[1] + '</span>'
+    + (g.acct ? '<span class="cond">account-wide</span>' : '')
+    + '</div>';
+}
+
+function render(){
+  const lvl = val('lvl');
+  const ent = derivedEntitlement();
+  const eq  = equivalence();
+
+  /* step 1 readout */
+  q('#derivedRole').textContent = ent.role;
+  q('#derivedNote').textContent = ent.note;
+
+  /* selection count */
+  const sel = selectedAgents();
+  q('#selCount').textContent = sel.length + ' selected'
+    + (sel.length ? ' — ' + sel.join(', ') : '');
+
+  /* equivalence line */
+  const el = q('#eqLine');
+  el.className = 'eqline ' + eq.cls;
+  el.innerHTML = '<b>This role is:</b> ' + eq.txt;
+
+  /* hood */
+  const grants = grantedPairs();
+  const gaps   = gapPairs();
+  q('#hRole').textContent = ent.role;
+  q('#hRole').className   = ent.role === 'none' ? 'no' : 'ok';
+  q('#hBnd').textContent  = lvl === 'none' ? '—' : scopeLabel();
+  q('#hEq').textContent   = eq.txt.replace('  ← first-release target configuration', '');
+  q('#hFollow').textContent = lvl === 'full' ? 'Included automatically'
+    : lvl === 'none' ? '—'
+    : 'Not included — Restricted access is an explicit list';
+  q('#hFollow').className = lvl === 'full' ? 'ok' : 'no';
+
+  q('#hoodGrant').innerHTML = grants.length
+    ? grants.map(g => permHtml(g, '')).join('')
+    : '<div class="none">Nothing granted.</div>';
+  q('#hoodGap').innerHTML = gaps.length
+    ? gaps.map(g => permHtml(g, 'gap')).join('')
+    : '<div class="none">Nothing — the entitlement role carries everything this role grants.</div>';
+
+  /* cost */
+  const ctrl = lvl === 'none' ? 0 : lvl === 'full' ? 1 : activeDelta().length;
+  q('#mCtrl').textContent = ctrl;
+  q('#mRes').textContent  = new Set(grants.map(g => g.p[0])).size;
+  q('#mPair').textContent = grants.length;
+  q('#mAcct').textContent = grants.filter(g => g.acct).length;
+  const specs = activeDelta().length;
+  q('#mSpec').textContent = specs;
+  q('#mCostRow').classList.toggle('hide', !EFFORT);
+  if (EFFORT){
+    q('#mCost').textContent = EFFORT.label(specs);
+    q('#mCost').className   = EFFORT.overBudget(specs) ? 'no' : 'ok';
+  }
+
+  /* warnings */
+  const w = [];
+  if (EFFORT && EFFORT.overBudget(specs)) w.push(['risk', EFFORT.warn(specs)]);
+  if (gaps.length)
+    w.push(['risk', '<b>Enforcement gap.</b> ' + gaps.length + ' granted <code>resource:scope</code> '
+      + 'pair(s) are not carried by the derived entitlement role. Any consumer reading the role '
+      + 'instead of the Decision API will <b>deny</b> them. This fails closed, not open — but it '
+      + 'is still a divergence, and the list of consumers reading the role directly is not yet '
+      + 'enumerated.']);
+  if (lvl === 'full' && val('bnd') !== 'all')
+    w.push(['warn', '<b>Scope not in the role.</b> Full access derives the same entitlement role '
+      + 'regardless of scope, so the restriction lives entirely in the Decision API. Whether the '
+      + 'entitlement can carry an explicit AI agent list is unverified.']);
+  if (val('bnd') === 'selected')
+    w.push(['warn', '<b>Staleness.</b> An explicit AI agent list does not follow AI agents created '
+      + 'later. There is no dynamic creator-based condition available, so this list must be '
+      + 'maintained by hand. Release 1 needs a written rule for what happens to AI agents created '
+      + 'after the role is saved.']);
+  if (val('bnd') === 'brand' && brandBlocked())
+    w.push(['risk', '<b>Blocked.</b> Brand is not an access-control attribute on an AI agent today. '
+      + 'This option is shown to test the model, not because it can ship.']);
+  const uncertain = activeDelta().filter(c => c.uncertain && rowVal(c) !== 'none');
+  if (uncertain.length && lvl === 'restricted')
+    w.push(['warn', '<b>Unverified scopeability.</b> ' + uncertain.map(c => c.label).join(', ')
+      + ' is shown as scopeable per AI agent. That has not been confirmed against the platform. If '
+      + 'it is account-wide, it moves next to API integrations and cannot be brand-restricted.']);
+  if (lvl === 'restricted' && !gaps.length && val('bnd') === 'all')
+    w.push(['ok', '<b>Clean.</b> Restricted access with nothing added maps exactly onto the standard '
+      + 'entitlement role. No divergence to enforce.']);
+  if (lvl === 'full' && val('bnd') === 'all')
+    w.push(['ok', '<b>Clean 1:1.</b> Full access over every AI agent is the one configuration that '
+      + 'needs no Decision API enforcement at all.']);
+  q('#hoodWarns').innerHTML = w.map(x =>
+    '<div class="w ' + x[0] + '">' + x[1] + '</div>').join('');
+
+  buildSummary();
+  renderAnnos();
+}
+
+/* =================== SUMMARY SCREEN =================== */
+
+function buildSummary(){
+  const lvl = val('lvl'), ent = derivedEntitlement(), eq = equivalence();
+  const rows = [];
+  const row = (l, v, cls) => rows.push('<div class="srow"><div class="sl">' + l
+    + '</div><div class="sv ' + (cls || '') + '">' + v + '</div></div>');
+
+  row('Access level', { none:'No access', full:'Full access', restricted:'Restricted access' }[lvl],
+      lvl === 'none' ? 'deny' : 'ok');
+  if (lvl !== 'none') row('Which AI agents', scopeLabel(), '');
+  row('Equivalent to', eq.txt.replace('  ← first-release target configuration', ''), '');
+
+  if (lvl === 'restricted'){
+    activeDelta().forEach(c => {
+      const v = rowVal(c);
+      row(c.label + (c.applies === 'account'
+            ? ' <span style="color:#a35200;font-size:11px;">(all AI agents)</span>' : ''),
+          v === 'none' ? 'No access' : v === 'view' ? 'View only' : 'Full access',
+          v === 'none' ? 'deny' : 'ok');
+    });
+  }
+
+  row('Entitlement role', '<code>' + ent.role + '</code> ' + ent.note, '');
+  const gaps = gapPairs();
+  row('Enforced by the Decision API only',
+      gaps.length ? gaps.length + ' resource:scope pair(s)' : 'none',
+      gaps.length ? 'deny' : 'ok');
+  row('Requires entitlement', 'AI Agents Advanced', '');
+
+  q('#summaryRows').innerHTML = rows.join('');
+}
+
+/* =================== ANNOTATIONS =================== */
+
+function renderAnnos(){
+  if (!ANNOS.length){ document.body.classList.add('no-anno'); return; }
+  document.body.classList.remove('no-anno');
+  q('#annoSub').textContent = 'Local build. ' + ANNOS.length + ' notes.';
+  q('#annoBody').innerHTML = ANNOS.map((a, i) =>
+    '<div class="note ' + (a.k || '') + '"><span class="nh"><span class="nn">'
+    + (i + 1) + '</span>' + a.h + '</span>' + a.b + '</div>').join('');
+}
+
+/* =================== NAV =================== */
+
+function go(s){
+  screen = s;
+  ['list','create','edit'].forEach(x =>
+    q('#scr-' + x).classList.toggle('hide', x !== s));
+  q('#nav1').classList.toggle('on', s === 'list');
+  q('#nav2').classList.toggle('on', s === 'create');
+  q('#nav3').classList.toggle('on', s === 'edit');
+  q('.footer-bar').classList.toggle('hide', s === 'list');
+  q('#primaryBtn').textContent = s === 'create' ? 'Save' : 'Save changes';
+  if (s === 'edit'){
+    q('#editTitle').textContent = q('#rName').value || 'Untitled role';
+    q('#editCrumb').textContent = q('#rName').value || 'Untitled role';
+  }
+  render();
+}
+
+function primaryAction(){
+  const b = val('bnd');
+  if (val('lvl') !== 'none' && b === 'selected' && !selectedAgents().length){
+    toast('⚠ Select at least one AI agent'); return;
+  }
+  if (val('lvl') !== 'none' && b === 'brand' && !q('#brandSel').value){
+    toast('⚠ Select a brand'); return;
+  }
+  if (screen === 'create'){
+    q('#newRoleName').textContent = q('#rName').value || 'Untitled role';
+    q('#newRoleDesc').textContent = q('#rDesc').value;
+    q('#rowNew').style.display = '';
+    toast('Role created'); go('edit');
+  } else toast('Changes saved — may take up to a minute to apply');
+}
+
+function toast(m){
+  q('#toastMsg').textContent = m;
+  q('#toast').classList.remove('hide');
+  clearTimeout(window._t);
+  window._t = setTimeout(() => q('#toast').classList.add('hide'), 3400);
+}
+
+function toggleHood(){
+  const h = q('#hood');
+  h.classList.toggle('hide');
+  q('#hoodTab').classList.toggle('hide', !h.classList.contains('hide'));
+}
+
+/* =================== INIT =================== */
+setRel('v1');
+go('list');
+</script>
+</body>
+</html>
