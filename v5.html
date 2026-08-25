@@ -274,6 +274,7 @@ table.roles tr.hl td { background:#f4faff; }
   <div>
     <div class="pb-sub" style="margin-bottom:3px;">Release</div>
     <div class="seg">
+      <button id="btnV0" onclick="setRel('v0')">Release 0</button>
       <button id="btnV1" class="on" onclick="setRel('v1')">Release 1</button>
       <button id="btnAll" onclick="setRel('all')">+ Later</button>
     </div>
@@ -393,23 +394,55 @@ table.roles tr.hl td { background:#f4faff; }
           <div class="sh"><span class="sn">1</span><h4>Access level</h4></div>
           <div class="sd">How much of AI agents this role can reach.</div>
           <div class="sbody">
-            <label class="opt">
-              <input type="radio" name="lvl" value="none" checked onchange="onLevel()">
-              <span><span class="ot">No access</span>
-              <span class="od">Cannot open AI agents.</span></span>
-            </label>
-            <label class="opt">
-              <input type="radio" name="lvl" value="full" onchange="onLevel()">
-              <span><span class="ot">Full access</span>
-              <span class="od">Every AI agent capability, including ones released later. No
-                per-capability choices to make.</span></span>
-            </label>
-            <label class="opt">
-              <input type="radio" name="lvl" value="restricted" onchange="onLevel()">
-              <span><span class="ot">Restricted access</span>
-              <span class="od">Can build and manage AI agents within the scope set below. Additional
-                capabilities are granted individually.</span></span>
-            </label>
+
+            <!-- ---- Release 1 / + Later — 3 levels, level opens scope + capabilities ---- -->
+            <div id="step1-v1">
+              <label class="opt">
+                <input type="radio" name="lvl" value="none" checked onchange="onLevel()">
+                <span><span class="ot">No access</span>
+                <span class="od">Cannot open AI agents.</span></span>
+              </label>
+              <label class="opt">
+                <input type="radio" name="lvl" value="full" onchange="onLevel()">
+                <span><span class="ot">Full access</span>
+                <span class="od">Every AI agent capability, including ones released later. No
+                  per-capability choices to make.</span></span>
+              </label>
+              <label class="opt">
+                <input type="radio" name="lvl" value="restricted" onchange="onLevel()">
+                <span><span class="ot">Restricted access</span>
+                <span class="od">Can build and manage AI agents within the scope set below. Additional
+                  capabilities are granted individually.</span></span>
+              </label>
+            </div>
+
+            <!-- ---- Release 0 — straight 1:1 mapping onto today's 4 entitlement roles ---- -->
+            <div id="step1-v0" class="hide">
+              <label class="opt">
+                <input type="radio" name="lvl0" value="none" checked onchange="onLevel()">
+                <span><span class="ot">No access</span>
+                <span class="od">Cannot open AI agents.</span></span>
+              </label>
+              <label class="opt">
+                <input type="radio" name="lvl0" value="restricted" onchange="onLevel()">
+                <span><span class="ot">Restricted access</span>
+                <span class="od">Maps directly to the existing <code>clientUser</code> entitlement
+                  role — no scope or capability choices in this release.</span></span>
+              </label>
+              <label class="opt">
+                <input type="radio" name="lvl0" value="editor" onchange="onLevel()">
+                <span><span class="ot">Editor access</span>
+                <span class="od">Maps directly to the existing <code>clientEditor</code> entitlement
+                  role — no scope or capability choices in this release.</span></span>
+              </label>
+              <label class="opt">
+                <input type="radio" name="lvl0" value="full" onchange="onLevel()">
+                <span><span class="ot">Full access</span>
+                <span class="od">Maps directly to the existing <code>clientAdmin</code> entitlement
+                  role — no scope or capability choices in this release.</span></span>
+              </label>
+            </div>
+
             <div class="derived" id="s1Derived">Resolves to entitlement role:
               <code id="derivedRole">none</code> <span id="derivedNote"></span></div>
           </div>
@@ -530,7 +563,7 @@ table.roles tr.hl td { background:#f4faff; }
 <div class="hood-tab" id="hoodTab" onclick="toggleHood()">UNDER THE HOOD ◂</div>
 <div class="hood hide" id="hood">
   <h3>Under the hood <span class="x" onclick="toggleHood()">✕</span></h3>
-  <p class="hd"><b>The access level maps to an entitlement role. The capability list is the
+  <p class="hd" id="hoodIntro"><b>The access level maps to an entitlement role. The capability list is the
     delta.</b> Full access resolves 1:1. Restricted access resolves to the standard role and the
     Decision API carries everything added on top.</p>
 
@@ -645,8 +678,11 @@ let screen = 'list';
 const q  = s => document.querySelector(s);
 const qa = s => [...document.querySelectorAll(s)];
 const val = n => { const e = q('input[name="'+n+'"]:checked'); return e ? e.value : null; };
+/* Release 0 has its own radio group (lvl0) so switching release modes never disturbs the
+   other model's selection — each keeps its own state independently. */
+const lvlVal = () => val(rel === 'v0' ? 'lvl0' : 'lvl');
 
-function activeDelta(){ return DELTA.filter(c => rel === 'all' || c.rel === 'v1'); }
+function activeDelta(){ return rel === 'v0' ? [] : DELTA.filter(c => rel === 'all' || c.rel === 'v1'); }
 function brandBlocked(){ return rel !== 'all'; }
 
 /* =================== ROW BUILDING =================== */
@@ -692,7 +728,7 @@ function setRow(c, v){
 }
 
 function preset(kind){
-  if (val('lvl') !== 'restricted') return;
+  if (lvlVal() !== 'restricted') return;
   activeDelta().forEach(c => {
     if (kind === 'nothing') setRow(c, 'none');
     else if (kind === 'everything') setRow(c, 'full');
@@ -706,8 +742,17 @@ function preset(kind){
 
 function setRel(r){
   rel = r;
+  q('#btnV0').classList.toggle('on', r === 'v0');
   q('#btnV1').classList.toggle('on', r === 'v1');
   q('#btnAll').classList.toggle('on', r === 'all');
+  q('#step1-v0').classList.toggle('hide', r !== 'v0');
+  q('#step1-v1').classList.toggle('hide', r === 'v0');
+  q('#hoodIntro').innerHTML = r === 'v0'
+    ? '<b>Release 0 — straight 1:1 mapping.</b> The access level chosen <i>is</i> the entitlement '
+      + 'role. No scope or capability configuration exists in this release.'
+    : '<b>The access level maps to an entitlement role. The capability list is the '
+      + 'delta.</b> Full access resolves 1:1. Restricted access resolves to the standard role and the '
+      + 'Decision API carries everything added on top.';
   q('#brandTag').classList.toggle('hide', !brandBlocked());
   q('#brandOd').textContent = brandBlocked()
     ? 'Brand is not an access-control attribute on an AI agent today.'
@@ -723,7 +768,13 @@ function setBnd(v){
 }
 
 function onLevel(){
-  const lvl = val('lvl');
+  const lvl = lvlVal();
+  if (rel === 'v0'){
+    q('#step2').classList.add('hide');
+    q('#step3').classList.add('hide');
+    render();
+    return;
+  }
   q('#step2').classList.toggle('hide', lvl === 'none');
   q('#step3').classList.toggle('hide', lvl !== 'restricted');
   if (lvl === 'restricted') preset('nothing'); else render();
@@ -754,19 +805,23 @@ function scopeLabel(){
 }
 
 function derivedEntitlement(){
-  const lvl = val('lvl');
+  const lvl = lvlVal();
   if (lvl === 'none')  return { role:'none', note:'— no AI Agents entitlement consumed' };
   if (lvl === 'full')  return val('bnd') === 'all'
     ? { role:'clientAdmin', note:'— clean 1:1 mapping' }
     : { role:'clientAdmin', note:'— ⚠ scope carried outside the role' };
-  return { role:'clientUser', note:'— the standard role. Anything added sits above it.' };
+  if (lvl === 'editor') return { role:'clientEditor', note:'— clean 1:1 mapping' };
+  return { role:'clientUser', note: rel === 'v0'
+    ? '— clean 1:1 mapping'
+    : '— the standard role. Anything added sits above it.' };
 }
 
 /* What the configuration amounts to, in role terms. */
 function equivalence(){
-  const lvl = val('lvl');
+  const lvl = lvlVal();
   if (lvl === 'none') return { txt:'No AI agent access', cls:'' };
   if (lvl === 'full') return { txt:'clientAdmin — every capability', cls:'target' };
+  if (lvl === 'editor') return { txt:'Exactly clientEditor — every AI agent, standard capabilities', cls:'' };
 
   const act = activeDelta();
   const granted = act.filter(c => rowVal(c) !== 'none');
@@ -796,7 +851,7 @@ function equivalence(){
 
 /* Pairs granted by this role. */
 function grantedPairs(){
-  const lvl = val('lvl');
+  const lvl = lvlVal();
   const out = [];
   if (lvl === 'none') return out;
 
@@ -821,7 +876,8 @@ function grantedPairs(){
    Under Restricted access the derived role is the standard one, so every added
    capability falls into this set. */
 function gapPairs(){
-  if (val('lvl') !== 'restricted') return [];
+  const lvl = lvlVal();
+  if (lvl !== 'restricted' && lvl !== 'editor') return [];
   return grantedPairs().filter(g => g.added);
 }
 
@@ -835,7 +891,7 @@ function permHtml(g, cls){
 }
 
 function render(){
-  const lvl = val('lvl');
+  const lvl = lvlVal();
   const ent = derivedEntitlement();
   const eq  = equivalence();
 
@@ -858,11 +914,13 @@ function render(){
   const gaps   = gapPairs();
   q('#hRole').textContent = ent.role;
   q('#hRole').className   = ent.role === 'none' ? 'no' : 'ok';
-  q('#hBnd').textContent  = lvl === 'none' ? '—' : scopeLabel();
+  q('#hBnd').textContent  = lvl === 'none' ? '—'
+    : rel === 'v0' ? 'N/A — no scope control in Release 0'
+    : scopeLabel();
   q('#hEq').textContent   = eq.txt.replace('  ← first-release target configuration', '');
   q('#hFollow').textContent = lvl === 'full' ? 'Included automatically'
     : lvl === 'none' ? '—'
-    : 'Not included — Restricted access is an explicit list';
+    : 'Not included — this role is static';
   q('#hFollow').className = lvl === 'full' ? 'ok' : 'no';
 
   q('#hoodGrant').innerHTML = grants.length
@@ -888,6 +946,16 @@ function render(){
 
   /* warnings */
   const w = [];
+  if (rel === 'v0'){
+    if (lvl !== 'none')
+      w.push(['ok', '<b>Clean 1:1.</b> Release 0 maps this access level directly onto its existing '
+        + 'entitlement role — no Decision API enforcement gap, no new permission specs.']);
+    q('#hoodWarns').innerHTML = w.map(x =>
+      '<div class="w ' + x[0] + '">' + x[1] + '</div>').join('');
+    buildSummary();
+    renderAnnos();
+    return;
+  }
   if (EFFORT && EFFORT.overBudget(specs)) w.push(['risk', EFFORT.warn(specs)]);
   if (gaps.length)
     w.push(['risk', '<b>Enforcement gap.</b> ' + gaps.length + ' granted <code>resource:scope</code> '
@@ -928,17 +996,18 @@ function render(){
 /* =================== SUMMARY SCREEN =================== */
 
 function buildSummary(){
-  const lvl = val('lvl'), ent = derivedEntitlement(), eq = equivalence();
+  const lvl = lvlVal(), ent = derivedEntitlement(), eq = equivalence();
   const rows = [];
   const row = (l, v, cls) => rows.push('<div class="srow"><div class="sl">' + l
     + '</div><div class="sv ' + (cls || '') + '">' + v + '</div></div>');
 
-  row('Access level', { none:'No access', full:'Full access', restricted:'Restricted access' }[lvl],
+  row('Access level',
+      { none:'No access', full:'Full access', restricted:'Restricted access', editor:'Editor access' }[lvl],
       lvl === 'none' ? 'deny' : 'ok');
-  if (lvl !== 'none') row('Which AI agents', scopeLabel(), '');
+  if (lvl !== 'none' && rel !== 'v0') row('Which AI agents', scopeLabel(), '');
   row('Equivalent to', eq.txt.replace('  ← first-release target configuration', ''), '');
 
-  if (lvl === 'restricted'){
+  if (lvl === 'restricted' && rel !== 'v0'){
     activeDelta().forEach(c => {
       const v = rowVal(c);
       row(c.label + (c.applies === 'account'
@@ -989,10 +1058,10 @@ function go(s){
 
 function primaryAction(){
   const b = val('bnd');
-  if (val('lvl') !== 'none' && b === 'selected' && !selectedAgents().length){
+  if (lvlVal() !== 'none' && b === 'selected' && !selectedAgents().length){
     toast('⚠ Select at least one AI agent'); return;
   }
-  if (val('lvl') !== 'none' && b === 'brand' && !q('#brandSel').value){
+  if (lvlVal() !== 'none' && b === 'brand' && !q('#brandSel').value){
     toast('⚠ Select a brand'); return;
   }
   if (screen === 'create'){
