@@ -261,7 +261,7 @@ table.roles tr.hl td { background:#f4faff; }
 <div class="proto-banner">
   <div>
     <div class="pb-title">⚠️ PROTOTYPE — AI Agents Permissions in Custom Roles</div>
-    <div class="pb-sub">v5, Aug 2026 — access level maps to an entitlement role; Restricted opens the delta.</div>
+    <div class="pb-sub">v5.1 · Sept 2026 — capability groups mirror the unified CX agent dashboard: Optimize · Build · Test · Launch.</div>
   </div>
   <div class="spacer"></div>
   <div>
@@ -276,7 +276,7 @@ table.roles tr.hl td { background:#f4faff; }
     <div class="seg">
       <button id="btnV0" onclick="setRel('v0')">Release 0</button>
       <button id="btnV1" class="on" onclick="setRel('v1')">Release 1</button>
-      <button id="btnAll" onclick="setRel('all')">+ Later</button>
+      <button id="btnV2" onclick="setRel('v2')">Release 2</button>
     </div>
   </div>
   <div>
@@ -405,14 +405,14 @@ table.roles tr.hl td { background:#f4faff; }
               <label class="opt">
                 <input type="radio" name="lvl" value="full" onchange="onLevel()">
                 <span><span class="ot">Full access</span>
-                <span class="od">Every AI agent capability, including ones released later. No
-                  per-capability choices to make.</span></span>
+                <span class="od">Every AI agent in the account, every capability — including ones
+                  released later. No scope or per-capability choices to make.</span></span>
               </label>
               <label class="opt">
                 <input type="radio" name="lvl" value="restricted" onchange="onLevel()">
                 <span><span class="ot">Restricted access</span>
-                <span class="od">Can build and manage AI agents within the scope set below. Additional
-                  capabilities are granted individually.</span></span>
+                <span class="od">Nothing is included until it is turned on below — each capability
+                  gets its own access level, inside the scope set below.</span></span>
               </label>
             </div>
 
@@ -425,21 +425,21 @@ table.roles tr.hl td { background:#f4faff; }
               </label>
               <label class="opt">
                 <input type="radio" name="lvl0" value="restricted" onchange="onLevel()">
-                <span><span class="ot">Restricted access</span>
-                <span class="od">Maps directly to the existing <code>clientUser</code> entitlement
-                  role — no scope or capability choices in this release.</span></span>
+                <span><span class="ot"><code>clientUser</code></span>
+                <span class="od">The existing standard entitlement role — no scope or
+                  capability choices in this release.</span></span>
               </label>
               <label class="opt">
                 <input type="radio" name="lvl0" value="editor" onchange="onLevel()">
-                <span><span class="ot">Editor access</span>
-                <span class="od">Maps directly to the existing <code>clientEditor</code> entitlement
-                  role — no scope or capability choices in this release.</span></span>
+                <span><span class="ot"><code>clientEditor</code></span>
+                <span class="od">The existing editor entitlement role — no scope or
+                  capability choices in this release.</span></span>
               </label>
               <label class="opt">
                 <input type="radio" name="lvl0" value="full" onchange="onLevel()">
-                <span><span class="ot">Full access</span>
-                <span class="od">Maps directly to the existing <code>clientAdmin</code> entitlement
-                  role — no scope or capability choices in this release.</span></span>
+                <span><span class="ot"><code>clientAdmin</code></span>
+                <span class="od">The existing admin entitlement role — no scope or
+                  capability choices in this release.</span></span>
               </label>
             </div>
 
@@ -453,11 +453,10 @@ table.roles tr.hl td { background:#f4faff; }
           <div class="sh"><span class="sn">2</span><h4>Which AI agents</h4></div>
           <div class="sd">Everything this role can do applies only inside this set.</div>
           <div class="sbody">
-            <label class="opt">
+            <label class="opt hide" id="brandOpt">
               <input type="radio" name="bnd" value="brand" onchange="onBoundary()">
-              <span><span class="ot">All AI agents in one brand <span class="tag blk" id="brandTag">Blocked</span></span>
-              <span class="od" id="brandOd">Brand is not an access-control attribute on an AI agent
-                today.</span></span>
+              <span><span class="ot">All AI agents in one brand</span>
+              <span class="od">Every AI agent belonging to one brand.</span></span>
             </label>
             <label class="opt">
               <input type="radio" name="bnd" value="selected" onchange="onBoundary()">
@@ -505,8 +504,7 @@ table.roles tr.hl td { background:#f4faff; }
         <!-- ---------- 3 · CAPABILITIES ---------- -->
         <div class="step hide" id="step3" style="order:3;">
           <div class="sh"><span class="sn">3</span><h4>Capabilities</h4></div>
-          <div class="sd">Restricted access already includes building and managing AI agents. These
-            capabilities are additional, and are off until you turn them on.</div>
+          <div class="sd" id="step3Desc"></div>
           <div class="sbody">
 
             <div class="bulkbar">
@@ -517,8 +515,8 @@ table.roles tr.hl td { background:#f4faff; }
             </div>
 
             <div class="plist">
-              <div class="plisthead">Additional capabilities
-                <span class="sub">— off by default. Each one must be granted explicitly.</span></div>
+              <div class="plisthead">Capabilities
+                <span class="sub" id="plistSub"></span></div>
               <div id="deltaRows"></div>
             </div>
 
@@ -577,8 +575,12 @@ table.roles tr.hl td { background:#f4faff; }
   <div id="hoodGrant"></div>
 
   <h4>Granted here, not carried by the entitlement role
-    <span class="sub">the enforcement gap</span></h4>
+    <span class="sub">the additive gap — fails closed</span></h4>
   <div id="hoodGap"></div>
+
+  <h4>Carried by the entitlement role, withheld here
+    <span class="sub">the exclusion hole — fails open</span></h4>
+  <div id="hoodHole"></div>
 
   <h4>Cost</h4>
   <div class="metric"><span>Admin-facing controls</span><b id="mCtrl">0</b></div>
@@ -598,81 +600,142 @@ const ANNOS = [];
 
 /* =================== MODEL =================== */
 
-/* What Restricted access includes before anything is added — i.e. what clientUser already carries.
-   Deliberately NOT shown as controls: they come with the level and are not separately configurable.
-   Kept here because the role genuinely grants these pairs, so they belong in the inclusion set. */
-const BASE = [
-  { k:'build', label:'Build and manage AI agents',
-    desc:'Create, edit and publish.',
-    pairs:[['ai_agent','read'],['ai_agent','write'],['ai_agent','create'],['ai_agent','publish']] },
-  { k:'delete', label:'Delete AI agents',
-    desc:'The one irreversible action.',
-    pairs:[['ai_agent','delete']] },
-  { k:'content', label:'Manage intents, use cases, templates, actions, segments',
-    desc:'Content management inside an AI agent.',
-    pairs:[['ai_agent_intent','write'],['ai_agent_use_case','write'],['ai_agent_template','write'],
-           ['ai_agent_action','write'],['ai_agent_segment','write']] },
-  { k:'analytics', label:'View analytics and conversation logs',
-    desc:'Read-only reporting.',
-    pairs:[['ai_agent_analytics','read']] },
-  { k:'settings', label:'Manage AI agent settings',
-    desc:'Per-agent languages, hours, handover.',
-    pairs:[['ai_agent_setting','read'],['ai_agent_setting','write']] }
+/* The capability surface mirrors the unified CX agent dashboard's information architecture:
+   four areas — Optimize, Build, Test, Launch.
+   Release 1 grants one access level per area. Release 2 breaks each area into its
+   capabilities, each with its own access level.
+
+   std marks what the standard entitlement role (clientUser) is ASSUMED to carry in the new
+   IA — Build in full, Optimize at view; everything else is admin-only today. An assumption,
+   not verified with Permissions. */
+const GROUPS = [
+  { k:'optimize', label:'Optimize', applies:'scope', std:'view',
+    desc:'Dashboard overview, automation insights, AI agent performance metrics, conversation logs.',
+    viewDesc:'Read-only dashboard, insights and logs.',
+    fullDesc:'Includes custom reports, exports, monitoring and alerts.',
+    subs:[
+      { k:'overview', label:'Overview', std:'view',
+        desc:'Account insights and the AI agent dashboard.',
+        view:[['ai_agent_dashboard','read']],
+        full:[['ai_agent_dashboard','read'],['ai_agent_dashboard','write']],
+        viewDesc:'Read-only dashboard and account insights.',
+        fullDesc:'Includes customising and sharing dashboards.' },
+      { k:'analysis', label:'Analysis', std:'view',
+        desc:'Automation insights, AI agent performance metrics, conversation logs.',
+        view:[['ai_agent_analytics','read'],['ai_agent_conversation_log','read']],
+        full:[['ai_agent_analytics','read'],['ai_agent_conversation_log','read'],
+              ['ai_agent_analytics','export'],['ai_agent_report','write']],
+        viewDesc:'Read-only metrics, insights and conversation logs.',
+        fullDesc:'Includes exports and building custom reports.' },
+      { k:'monitoring', label:'Monitoring', std:'view',
+        desc:'Live monitoring and alerting on AI agent behaviour.',
+        view:[['ai_agent_monitoring','read']],
+        full:[['ai_agent_monitoring','read'],['ai_agent_alert','write']],
+        viewDesc:'Read-only monitoring views.',
+        fullDesc:'Includes creating and managing alerts.' }
+    ]},
+  { k:'build', label:'Build', applies:'scope', std:'full',
+    desc:'Everything needed to build and configure an AI agent.',
+    viewDesc:'Read-only across all configuration areas.',
+    fullDesc:'Create, edit, publish and delete AI agents and their configuration.',
+    /* Core agent lifecycle pairs — no visible sub-capability of their own; they ride with
+       the Build area at Full access. */
+    core:[['ai_agent','read'],['ai_agent','write'],['ai_agent','create'],
+          ['ai_agent','publish'],['ai_agent','delete']],
+    subs:[
+      { k:'knowledge', label:'Knowledge', std:'full',
+        desc:'Sources, procedures and guidance.',
+        view:[['ai_agent_knowledge_source','read'],['ai_agent_procedure','read'],
+              ['ai_agent_guidance','read']],
+        full:[['ai_agent_knowledge_source','read'],['ai_agent_knowledge_source','write'],
+              ['ai_agent_knowledge_source','create'],['ai_agent_knowledge_source','delete'],
+              ['ai_agent_procedure','write'],['ai_agent_guidance','write']],
+        viewDesc:'Can see connected sources, procedures and guidance.',
+        fullDesc:'Can connect, edit and remove sources; manage procedures and guidance.' },
+      { k:'tools', label:'Tools', std:'full',
+        desc:'Connections and actions the AI agent can take.',
+        view:[['ai_agent_connection','read'],['ai_agent_action','read']],
+        full:[['ai_agent_connection','read'],['ai_agent_connection','write'],
+              ['ai_agent_action','read'],['ai_agent_action','write'],
+              ['ai_agent_action','create'],['ai_agent_action','delete']],
+        viewDesc:'Can see configured connections and actions.',
+        fullDesc:'Can create and edit connections and actions.' },
+      { k:'personalization', label:'Personalization', std:'full',
+        desc:'AI agent persona, languages and glossary.',
+        view:[['ai_agent_personalization','read']],
+        full:[['ai_agent_personalization','read'],['ai_agent_personalization','write'],
+              ['ai_agent_language','write'],['ai_agent_glossary','write']],
+        viewDesc:'Can see the persona, language and glossary configuration.',
+        fullDesc:'Can change persona, languages and glossary.' },
+      { k:'audiences', label:'Audiences', std:'full',
+        desc:'Customer segments, variables and search rules.',
+        view:[['ai_agent_segment','read'],['ai_agent_variable','read'],
+              ['ai_agent_search_rule','read']],
+        full:[['ai_agent_segment','read'],['ai_agent_segment','write'],
+              ['ai_agent_variable','read'],['ai_agent_variable','write'],
+              ['ai_agent_search_rule','read'],['ai_agent_search_rule','write']],
+        viewDesc:'Can see segments, variables and search rules.',
+        fullDesc:'Can manage segments, variables and search rules.' }
+    ]},
+  { k:'test', label:'Test', applies:'scope', std:null,
+    desc:'Evaluations and experiments before an AI agent goes live.',
+    viewDesc:'Read-only test results and experiments.',
+    fullDesc:'Run tests, manage customer profiles and A/B experiments.',
+    subs:[
+      { k:'evaluations', label:'Evaluations', std:null,
+        desc:'Manual tests, simulated tests and customer profiles.',
+        view:[['ai_agent_evaluation','read']],
+        full:[['ai_agent_evaluation','read'],['ai_agent_evaluation','write'],
+              ['ai_agent_test_run','create'],['ai_agent_customer_profile','write']],
+        viewDesc:'Can see evaluation results.',
+        fullDesc:'Can run tests and manage customer profiles.' },
+      { k:'experiments', label:'Experiments', std:null,
+        desc:'A/B tests.',
+        view:[['ai_agent_experiment','read']],
+        full:[['ai_agent_experiment','read'],['ai_agent_experiment','write'],
+              ['ai_agent_experiment','create']],
+        viewDesc:'Can see experiments and their results.',
+        fullDesc:'Can create and manage A/B tests.' }
+    ]},
+  { k:'launch', label:'Launch', applies:'scope', std:null,
+    desc:'Activate channels, channel-specific configuration, and third-party CRM connections.',
+    viewDesc:'Read-only channel and connection configuration.',
+    fullDesc:'Deploy to channels and connect third-party CRMs.',
+    subs:[
+      { k:'channels', label:'Channels', std:null,
+        desc:'Deploy to messaging, email and voice, with channel-specific configuration.',
+        view:[['ai_agent_channel','read']],
+        full:[['ai_agent_channel','read'],['ai_agent_channel','write'],
+              ['ai_agent_channel','activate']],
+        viewDesc:'Can see channel configuration.',
+        fullDesc:'Can activate channels and change their configuration.' },
+      { k:'connections', label:'Platform connections', std:null,
+        desc:'Connect the third-party CRMs the AI agent works across.',
+        view:[['ai_agent_platform_connection','read']],
+        full:[['ai_agent_platform_connection','read'],['ai_agent_platform_connection','write'],
+              ['ai_agent_platform_connection','create'],['ai_agent_platform_connection','delete']],
+        viewDesc:'Can see connected platforms.',
+        fullDesc:'Can connect and disconnect third-party CRMs.' }
+    ]}
 ];
 
-/* Added capabilities — the difference between the standard role and full access.
-   All default to No access. Granting all four makes the role full-access-equivalent. */
-const DELTA = [
-  { k:'integrations', label:'API integrations', applies:'account', rel:'v1',
+/* Account-level — outside the four areas, cannot be scoped. The one permission the first
+   release ships for. */
+const ACCOUNT = [
+  { k:'integrations', label:'API integrations', applies:'account', std:null,
     desc:'Configurations, credentials, headers and keys. Affects every AI agent — cannot be scoped.',
     view:[['ai_agent_integration','read']],
     full:[['ai_agent_integration','read'],['ai_agent_integration','read_credentials'],
           ['ai_agent_integration','write'],['ai_agent_integration','create'],
           ['ai_agent_integration','delete']],
     viewDesc:'Can see that an integration exists. Never the credentials.',
-    fullDesc:'Includes creating, editing and reading credentials.' },
-
-  { k:'knowledge', label:'Knowledge sources', applies:'scope', rel:'v1', uncertain:true,
-    desc:'Connected help centres, files and web sources.',
-    view:[['ai_agent_knowledge_source','read']],
-    full:[['ai_agent_knowledge_source','read'],['ai_agent_knowledge_source','write'],
-          ['ai_agent_knowledge_source','create'],['ai_agent_knowledge_source','delete']],
-    viewDesc:'Can see which sources are connected.',
-    fullDesc:'Can connect, edit and remove sources.' },
-
-  { k:'personalization', label:'Personalization', applies:'scope', rel:'v1',
-    desc:'Tone, persona and greeting.',
-    view:[['ai_agent_personalization','read']],
-    full:[['ai_agent_personalization','read'],['ai_agent_personalization','write']],
-    viewDesc:'Can see the configuration.',
-    fullDesc:'Can change tone, persona and greeting.' },
-
-  { k:'adminsettings', label:'Admin settings', applies:'account', rel:'v1',
-    desc:'Account-wide AI agent configuration. Affects every AI agent — cannot be scoped.',
-    view:[['ai_agent_admin_setting','read']],
-    full:[['ai_agent_admin_setting','read'],['ai_agent_admin_setting','write']],
-    viewDesc:'Read-only view of account-wide configuration.',
-    fullDesc:'Can change account-wide configuration.' },
-
-  /* --- later releases --- */
-  { k:'webhooks', label:'Manage webhooks', applies:'account', rel:'next',
-    desc:'Account-scoped endpoints.',
-    view:[['ai_agent_webhook','read']],
-    full:[['ai_agent_webhook','read'],['ai_agent_webhook','write']],
-    viewDesc:'Can see configured endpoints.',
-    fullDesc:'Can create and edit endpoints.' },
-  { k:'genai', label:'Account-wide generative AI settings', applies:'account', rel:'next',
-    desc:'Model, tone and safety defaults for every AI agent.',
-    view:[['ai_agent_generative_setting','read']],
-    full:[['ai_agent_generative_setting','read'],['ai_agent_generative_setting','write']],
-    viewDesc:'Read-only.',
-    fullDesc:'Can change account-wide generative defaults.' }
+    fullDesc:'Includes creating, editing and reading credentials.' }
 ];
 
 /* Effort-per-permission figures are internal and are supplied by the local build only. */
 const EFFORT = null;
 
-let rel    = 'v1';      /* v1 | all */
+let rel    = 'v1';      /* v0 | v1 | v2 */
 let screen = 'list';
 
 const q  = s => document.querySelector(s);
@@ -682,34 +745,99 @@ const val = n => { const e = q('input[name="'+n+'"]:checked'); return e ? e.valu
    other model's selection — each keeps its own state independently. */
 const lvlVal = () => val(rel === 'v0' ? 'lvl0' : 'lvl');
 
-function activeDelta(){ return rel === 'v0' ? [] : DELTA.filter(c => rel === 'all' || c.rel === 'v1'); }
-function brandBlocked(){ return rel !== 'all'; }
+/* The rows the current release configures. Release 1: one row per area. Release 2: one row
+   per capability within each area. API integrations is always its own account-level row. */
+function activeRows(){
+  if (rel === 'v0') return [];
+  if (rel === 'v2')
+    return GROUPS.reduce((out, g) =>
+      out.concat(g.subs.map(s => Object.assign({ group:g.label, applies:g.applies }, s))), [])
+      .concat(ACCOUNT);
+  return GROUPS.map(g => ({
+    k:g.k, label:g.label, applies:g.applies, std:g.std, desc:g.desc,
+    viewDesc:g.viewDesc, fullDesc:g.fullDesc,
+    view:g.subs.reduce((out, s) => out.concat(s.view), []),
+    full:g.subs.reduce((out, s) => out.concat(s.full), [])
+  })).concat(ACCOUNT);
+}
+/* Brand scoping exists only under Release 2 — the option is hidden in earlier releases. */
+
+/* The standard-bundle assumption rendered: clientUser carries Build in full and Optimize at
+   view. A row with no std sits outside the bundle entirely. */
+function stdSatisfied(c){
+  if (!c.std) return true;
+  const v = rowVal(c);
+  return c.std === 'full' ? v === 'full' : v !== 'none';
+}
+function coversStandard(){ return activeRows().every(stdSatisfied); }
+
+/* Pairs the derived clientUser role carries — the yardstick for both gap directions. */
+function stdPairs(){
+  const out = [];
+  GROUPS.forEach(g => {
+    if (g.std === 'full' && g.core) g.core.forEach(p => out.push({ p, from:g.label }));
+    g.subs.forEach(s => {
+      const ps = s.std === 'full' ? s.full : s.std === 'view' ? s.view : [];
+      ps.forEach(p => out.push({ p, from:g.label + ' — ' + s.label }));
+    });
+  });
+  return out;
+}
 
 /* =================== ROW BUILDING =================== */
 
 function rowName(c){ return 'p_' + c.k; }
 function rowVal(c){ const v = val(rowName(c)); return v === null ? 'none' : v; }
 
+const LVL_LABEL = { none:'No access', view:'View only', full:'Full access' };
+
+function rowHtml(c, indent){
+  const acct = c.applies === 'account';
+  const badge = acct
+    ? '<span class="sbadge acct">⚠ All AI agents</span>'
+    : '<span class="sbadge">Within scope</span>';
+  return '<div class="prow' + (acct ? ' acct' : '') + '"'
+    + (indent ? ' style="padding-left:34px;"' : '') + '>'
+    + '<div class="plabel">' + c.label + badge + '</div>'
+    + '<div class="pdesc">' + c.desc + '</div>'
+    + '<div class="popts">'
+    + optHtml(rowName(c), 'none', 'No access', '', true)
+    + optHtml(rowName(c), 'view', 'View only', c.viewDesc, false)
+    + optHtml(rowName(c), 'full', 'Full access', c.fullDesc, false)
+    + '</div></div>';
+}
+
 function buildRows(){
-  q('#deltaRows').innerHTML = activeDelta().map(c => {
-    const acct = c.applies === 'account';
-    const badge = acct
-      ? '<span class="sbadge acct">⚠ All AI agents</span>'
-      : '<span class="sbadge">Within scope</span>';
-    const later = c.rel === 'next' ? '<span class="tag next">Later</span>' : '';
-    return '<div class="prow' + (acct ? ' acct' : '') + '">'
-      + '<div class="plabel">' + c.label + badge + later + '</div>'
-      + '<div class="pdesc">' + c.desc + '</div>'
-      + '<div class="popts">'
-      + optHtml(rowName(c), 'none', 'No access', '', true)
-      + optHtml(rowName(c), 'view', 'View only', c.viewDesc, false)
-      + optHtml(rowName(c), 'full', 'Full access', c.fullDesc, false)
-      + '</div>'
-      + (c.uncertain
-          ? '<div class="lockline">⚠ Whether this is scopeable per AI agent is not confirmed.</div>'
-          : '')
-      + '</div>';
-  }).join('');
+  if (rel === 'v2'){
+    q('#step3Desc').textContent = 'Each capability within an area gets its own access level. '
+      + 'Everything is off until you turn it on.';
+    q('#plistSub').textContent = '— off by default. Set a whole area at once, or each capability '
+      + 'individually.';
+    q('#deltaRows').innerHTML = GROUPS.map(g =>
+        '<div class="prow" style="background:#f8f9f9;">'
+        + '<div class="plabel">' + g.label + '<span class="sbadge">Within scope</span>'
+        + '<span style="float:right;font-weight:400;">'
+        + ['none','view','full'].map(v =>
+            '<span class="lnk" style="color:#1f73b7;cursor:pointer;font-size:11.5px;margin-left:8px;"'
+            + ' onclick="setGroup(\'' + g.k + '\',\'' + v + '\')">' + LVL_LABEL[v] + '</span>'
+          ).join('')
+        + '</span></div>'
+        + '<div class="pdesc">' + g.desc + '</div></div>'
+        + g.subs.map(s => rowHtml(Object.assign({ applies:g.applies }, s), true)).join('')
+      ).join('')
+      + ACCOUNT.map(c => rowHtml(c, false)).join('');
+  } else {
+    q('#step3Desc').textContent = 'Each area of the AI agent dashboard gets one access level. '
+      + 'Nothing is included until you turn it on.';
+    q('#plistSub').textContent = '— off by default. Each area must be granted explicitly.';
+    q('#deltaRows').innerHTML = activeRows().map(c => rowHtml(c, false)).join('');
+  }
+}
+
+function setGroup(gk, v){
+  const g = GROUPS.find(x => x.k === gk);
+  g.subs.forEach(s => setRow(s, v));
+  render();
 }
 
 function optHtml(name, v, label, desc, checked){
@@ -729,7 +857,7 @@ function setRow(c, v){
 
 function preset(kind){
   if (lvlVal() !== 'restricted') return;
-  activeDelta().forEach(c => {
+  activeRows().forEach(c => {
     if (kind === 'nothing') setRow(c, 'none');
     else if (kind === 'everything') setRow(c, 'full');
     else if (kind === 'nocreds') setRow(c, c.k === 'integrations' ? 'none' : 'full');
@@ -744,20 +872,20 @@ function setRel(r){
   rel = r;
   q('#btnV0').classList.toggle('on', r === 'v0');
   q('#btnV1').classList.toggle('on', r === 'v1');
-  q('#btnAll').classList.toggle('on', r === 'all');
+  q('#btnV2').classList.toggle('on', r === 'v2');
   q('#step1-v0').classList.toggle('hide', r !== 'v0');
   q('#step1-v1').classList.toggle('hide', r === 'v0');
   q('#hoodIntro').innerHTML = r === 'v0'
     ? '<b>Release 0 — straight 1:1 mapping.</b> The access level chosen <i>is</i> the entitlement '
       + 'role. No scope or capability configuration exists in this release.'
-    : '<b>The access level maps to an entitlement role. The capability list is the '
-      + 'delta.</b> Full access resolves 1:1. Restricted access resolves to the standard role and the '
-      + 'Decision API carries everything added on top.';
-  q('#brandTag').classList.toggle('hide', !brandBlocked());
-  q('#brandOd').textContent = brandBlocked()
-    ? 'Brand is not an access-control attribute on an AI agent today.'
-    : 'Every AI agent belonging to one brand.';
-  if (brandBlocked() && val('bnd') === 'brand') setBnd('all');
+    : r === 'v1'
+    ? '<b>Release 1 — area-level control.</b> The access level maps to an entitlement role; the '
+      + 'four dashboard areas — Optimize, Build, Test, Launch — are the configurable surface, one '
+      + 'access level each.'
+    : '<b>Release 2 — per-capability control.</b> Each area breaks into its capabilities, each with '
+      + 'its own access level. More granular — and more permission specs to get reviewed.';
+  q('#brandOpt').classList.toggle('hide', r !== 'v2');
+  if (r !== 'v2' && val('bnd') === 'brand') setBnd('all');
   buildRows();
   onLevel();
 }
@@ -775,7 +903,7 @@ function onLevel(){
     render();
     return;
   }
-  q('#step2').classList.toggle('hide', lvl === 'none');
+  q('#step2').classList.toggle('hide', lvl !== 'restricted');
   q('#step3').classList.toggle('hide', lvl !== 'restricted');
   if (lvl === 'restricted') preset('nothing'); else render();
 }
@@ -807,13 +935,12 @@ function scopeLabel(){
 function derivedEntitlement(){
   const lvl = lvlVal();
   if (lvl === 'none')  return { role:'none', note:'— no AI Agents entitlement consumed' };
-  if (lvl === 'full')  return val('bnd') === 'all'
-    ? { role:'clientAdmin', note:'— clean 1:1 mapping' }
-    : { role:'clientAdmin', note:'— ⚠ scope carried outside the role' };
+  if (lvl === 'full')  return { role:'clientAdmin', note:'— clean 1:1 mapping, every AI agent' };
   if (lvl === 'editor') return { role:'clientEditor', note:'— clean 1:1 mapping' };
-  return { role:'clientUser', note: rel === 'v0'
-    ? '— clean 1:1 mapping'
-    : '— the standard role. Anything added sits above it.' };
+  if (rel === 'v0') return { role:'clientUser', note:'— clean 1:1 mapping' };
+  return coversStandard()
+    ? { role:'clientUser', note:'— the standard bundle. Anything added sits above it.' }
+    : { role:'clientUser', note:'— ⚠ smallest role there is, and it grants more than this role allows' };
 }
 
 /* What the configuration amounts to, in role terms. */
@@ -822,63 +949,86 @@ function equivalence(){
   if (lvl === 'none') return { txt:'No AI agent access', cls:'' };
   if (lvl === 'full') return { txt:'clientAdmin — every capability', cls:'target' };
   if (lvl === 'editor') return { txt:'Exactly clientEditor — every AI agent, standard capabilities', cls:'' };
+  if (rel === 'v0') return { txt:'Exactly clientUser — every AI agent, standard capabilities', cls:'' };
 
-  const act = activeDelta();
-  const granted = act.filter(c => rowVal(c) !== 'none');
+  const rows     = activeRows();
+  const granted  = rows.filter(c => rowVal(c) !== 'none');
+  const withheld = rows.filter(c => rowVal(c) !== 'full');
 
   if (!granted.length)
-    return { txt:'Exactly clientUser — nothing added', cls:'' };
-
-  const withheld = act.filter(c => rowVal(c) !== 'full');
-
+    return { txt:'No capabilities granted — effectively No access', cls:'warn' };
   if (!withheld.length)
     return { txt:'Full-access-equivalent — same capabilities as clientAdmin', cls:'warn' };
 
-  /* Everything granted bar one or two — the shape the first release is aimed at. */
+  /* The configuration the first release ships for. */
+  if (withheld.length === 1 && withheld[0].k === 'integrations' && rowVal(withheld[0]) === 'none')
+    return { txt:'Full access except: API integrations  ← first-release target configuration',
+             cls:'target' };
+
+  /* Below the standard bundle — the entitlement cannot subtract these. */
+  const below = rows.filter(c => c.std && !stdSatisfied(c))
+                    .map(c => (c.group ? c.group + ' — ' : '') + c.label);
+  if (below.length)
+    return { txt:'Below the standard bundle — withheld: ' + below.join(', '), cls:'warn' };
+
   if (withheld.length <= 2){
-    const names = withheld.map(c => c.label + (rowVal(c) === 'view' ? ' (view only)' : '')).join(', ');
-    const isTarget = withheld.length === 1 && withheld[0].k === 'integrations'
-                     && rowVal(withheld[0]) === 'none';
-    return {
-      txt:'Full access except: ' + names + (isTarget ? '  ← first-release target configuration' : ''),
-      cls: isTarget ? 'target' : 'warn'
-    };
+    const names = withheld.map(c => (c.group ? c.group + ' — ' : '') + c.label
+                          + (rowVal(c) === 'view' ? ' (view only)' : '')).join(', ');
+    return { txt:'Full access except: ' + names, cls:'warn' };
   }
 
-  return { txt:'clientUser plus ' + granted.length + ' additional capabilit'
-              + (granted.length === 1 ? 'y' : 'ies'), cls:'' };
+  const extras = granted
+    .filter(c => !c.std || (c.std === 'view' && rowVal(c) === 'full'))
+    .map(c => (c.group ? c.group + ' — ' : '') + c.label
+              + (rowVal(c) === 'view' ? ' (view only)' : ''));
+  return { txt: extras.length
+      ? 'clientUser plus ' + extras.join(', ')
+      : 'Exactly clientUser — the standard bundle', cls:'' };
 }
 
 /* Pairs granted by this role. */
 function grantedPairs(){
   const lvl = lvlVal();
+  if (lvl === 'none') return [];
+
   const out = [];
-  if (lvl === 'none') return out;
-
-  if (lvl === 'full'){
-    BASE.forEach(c => c.pairs.forEach(p => out.push({ p, acct:false, from:c.label })));
-    activeDelta().forEach(c => c.full.forEach(p =>
-      out.push({ p, acct:c.applies === 'account', from:c.label })));
-    return out;
-  }
-
-  BASE.forEach(c => c.pairs.forEach(p => out.push({ p, acct:false, from:c.label })));
-  activeDelta().forEach(c => {
+  activeRows().forEach(c => {
+    if (lvl === 'full'){
+      c.full.forEach(p => out.push({ p, acct:c.applies === 'account', from:c.label }));
+      return;
+    }
     const v = rowVal(c);
     if (v === 'none') return;
     (v === 'view' ? c.view : c.full).forEach(p =>
-      out.push({ p, acct:c.applies === 'account', from:c.label, added:true }));
+      out.push({ p, acct:c.applies === 'account',
+                 from:(c.group ? c.group + ' — ' : '') + c.label, added:true }));
   });
+
+  /* Build's core lifecycle pairs ride with the Build area at Full access. */
+  const build = GROUPS.find(g => g.k === 'build');
+  const buildFull = lvl === 'full'
+    || (rel === 'v2' ? build.subs.every(s => rowVal(s) === 'full')
+                     : rowVal(build) === 'full');
+  if (buildFull)
+    build.core.forEach(p => out.push({ p, acct:false, from:'Build', added:lvl !== 'full' }));
   return out;
 }
 
-/* Pairs the Custom Role grants that the derived entitlement role does not carry.
-   Under Restricted access the derived role is the standard one, so every added
-   capability falls into this set. */
+/* Pairs the Custom Role grants that the derived entitlement role does not carry — the
+   additive gap. Consumers reading the role deny these: fails closed. */
 function gapPairs(){
   const lvl = lvlVal();
   if (lvl !== 'restricted' && lvl !== 'editor') return [];
-  return grantedPairs().filter(g => g.added);
+  const std = new Set(stdPairs().map(x => x.p.join(':')));
+  return grantedPairs().filter(g => g.added && !std.has(g.p.join(':')));
+}
+
+/* Pairs the derived entitlement role carries that this Custom Role withholds — the
+   exclusion hole. Consumers reading the role grant these anyway: fails open. */
+function holePairs(){
+  if (rel === 'v0' || lvlVal() !== 'restricted') return [];
+  const granted = new Set(grantedPairs().map(g => g.p.join(':')));
+  return stdPairs().filter(x => !granted.has(x.p.join(':')));
 }
 
 /* =================== RENDER =================== */
@@ -912,10 +1062,12 @@ function render(){
   /* hood */
   const grants = grantedPairs();
   const gaps   = gapPairs();
+  const holes  = holePairs();
   q('#hRole').textContent = ent.role;
   q('#hRole').className   = ent.role === 'none' ? 'no' : 'ok';
   q('#hBnd').textContent  = lvl === 'none' ? '—'
     : rel === 'v0' ? 'N/A — no scope control in Release 0'
+    : lvl === 'full' ? 'All AI agents in the account'
     : scopeLabel();
   q('#hEq').textContent   = eq.txt.replace('  ← first-release target configuration', '');
   q('#hFollow').textContent = lvl === 'full' ? 'Included automatically'
@@ -929,14 +1081,17 @@ function render(){
   q('#hoodGap').innerHTML = gaps.length
     ? gaps.map(g => permHtml(g, 'gap')).join('')
     : '<div class="none">Nothing — the entitlement role carries everything this role grants.</div>';
+  q('#hoodHole').innerHTML = holes.length
+    ? holes.map(g => permHtml(g, 'gap')).join('')
+    : '<div class="none">Nothing — nothing the role carries is withheld here.</div>';
 
   /* cost */
-  const ctrl = lvl === 'none' ? 0 : lvl === 'full' ? 1 : activeDelta().length;
+  const ctrl = lvl === 'none' ? 0 : lvl === 'full' ? 1 : activeRows().length;
   q('#mCtrl').textContent = ctrl;
   q('#mRes').textContent  = new Set(grants.map(g => g.p[0])).size;
   q('#mPair').textContent = grants.length;
   q('#mAcct').textContent = grants.filter(g => g.acct).length;
-  const specs = activeDelta().length;
+  const specs = activeRows().length;
   q('#mSpec').textContent = specs;
   q('#mCostRow').classList.toggle('hide', !EFFORT);
   if (EFFORT){
@@ -957,33 +1112,37 @@ function render(){
     return;
   }
   if (EFFORT && EFFORT.overBudget(specs)) w.push(['risk', EFFORT.warn(specs)]);
+  if (holes.length)
+    w.push(['risk', '<b>Enforcement gap — subtractive.</b> The derived role <code>clientUser</code> '
+      + 'carries ' + holes.length + ' <code>resource:scope</code> pair(s) this Custom Role withholds, '
+      + 'and the entitlement cannot express an exclusion. Any consumer enforcing on the role rather '
+      + 'than the Decision API <b>grants them anyway</b> — a silent over-grant. This fails open.']);
   if (gaps.length)
-    w.push(['risk', '<b>Enforcement gap.</b> ' + gaps.length + ' granted <code>resource:scope</code> '
+    w.push(['risk', '<b>Enforcement gap — additive.</b> ' + gaps.length + ' granted <code>resource:scope</code> '
       + 'pair(s) are not carried by the derived entitlement role. Any consumer reading the role '
       + 'instead of the Decision API will <b>deny</b> them. This fails closed, not open — but it '
       + 'is still a divergence, and the list of consumers reading the role directly is not yet '
       + 'enumerated.']);
-  if (lvl === 'full' && val('bnd') !== 'all')
-    w.push(['warn', '<b>Scope not in the role.</b> Full access derives the same entitlement role '
-      + 'regardless of scope, so the restriction lives entirely in the Decision API. Whether the '
-      + 'entitlement can carry an explicit AI agent list is unverified.']);
-  if (val('bnd') === 'selected')
+  if (lvl === 'restricted' && !grants.length)
+    w.push(['warn', '<b>Effectively No access.</b> Restricted access with every capability off grants '
+      + 'nothing — but still consumes the entitlement seat. Whether this state should be saveable '
+      + 'is a product decision, not a UI detail.']);
+  if (lvl === 'restricted' && val('bnd') === 'selected')
     w.push(['warn', '<b>Staleness.</b> An explicit AI agent list does not follow AI agents created '
       + 'later. There is no dynamic creator-based condition available, so this list must be '
       + 'maintained by hand. Release 1 needs a written rule for what happens to AI agents created '
       + 'after the role is saved.']);
-  if (val('bnd') === 'brand' && brandBlocked())
-    w.push(['risk', '<b>Blocked.</b> Brand is not an access-control attribute on an AI agent today. '
-      + 'This option is shown to test the model, not because it can ship.']);
-  const uncertain = activeDelta().filter(c => c.uncertain && rowVal(c) !== 'none');
-  if (uncertain.length && lvl === 'restricted')
-    w.push(['warn', '<b>Unverified scopeability.</b> ' + uncertain.map(c => c.label).join(', ')
-      + ' is shown as scopeable per AI agent. That has not been confirmed against the platform. If '
-      + 'it is account-wide, it moves next to API integrations and cannot be brand-restricted.']);
-  if (lvl === 'restricted' && !gaps.length && val('bnd') === 'all')
-    w.push(['ok', '<b>Clean.</b> Restricted access with nothing added maps exactly onto the standard '
-      + 'entitlement role. No divergence to enforce.']);
-  if (lvl === 'full' && val('bnd') === 'all')
+  if (lvl === 'restricted' && val('bnd') === 'brand')
+    w.push(['warn', '<b>Forward-looking.</b> Brand scoping ships with Release 2 — brand is not an '
+      + 'access-control attribute on an AI agent today.']);
+  if (lvl === 'restricted' && grants.length)
+    w.push(['warn', '<b>Unverified scopeability.</b> Every area is shown as scopeable per AI agent. '
+      + 'That has not been confirmed against the platform — any capability that turns out '
+      + 'account-wide moves next to API integrations and cannot be brand-restricted.']);
+  if (lvl === 'restricted' && grants.length && !gaps.length && !holes.length && val('bnd') === 'all')
+    w.push(['ok', '<b>Clean.</b> This configuration maps exactly onto the standard entitlement '
+      + 'bundle. No divergence to enforce.']);
+  if (lvl === 'full')
     w.push(['ok', '<b>Clean 1:1.</b> Full access over every AI agent is the one configuration that '
       + 'needs no Decision API enforcement at all.']);
   q('#hoodWarns').innerHTML = w.map(x =>
@@ -1002,15 +1161,19 @@ function buildSummary(){
     + '</div><div class="sv ' + (cls || '') + '">' + v + '</div></div>');
 
   row('Access level',
-      { none:'No access', full:'Full access', restricted:'Restricted access', editor:'Editor access' }[lvl],
+      rel === 'v0'
+        ? { none:'No access', restricted:'<code>clientUser</code>',
+            editor:'<code>clientEditor</code>', full:'<code>clientAdmin</code>' }[lvl]
+        : { none:'No access', full:'Full access', restricted:'Restricted access',
+            editor:'Editor access' }[lvl],
       lvl === 'none' ? 'deny' : 'ok');
-  if (lvl !== 'none' && rel !== 'v0') row('Which AI agents', scopeLabel(), '');
+  if (lvl === 'restricted' && rel !== 'v0') row('Which AI agents', scopeLabel(), '');
   row('Equivalent to', eq.txt.replace('  ← first-release target configuration', ''), '');
 
   if (lvl === 'restricted' && rel !== 'v0'){
-    activeDelta().forEach(c => {
+    activeRows().forEach(c => {
       const v = rowVal(c);
-      row(c.label + (c.applies === 'account'
+      row((c.group ? c.group + ' — ' : '') + c.label + (c.applies === 'account'
             ? ' <span style="color:#a35200;font-size:11px;">(all AI agents)</span>' : ''),
           v === 'none' ? 'No access' : v === 'view' ? 'View only' : 'Full access',
           v === 'none' ? 'deny' : 'ok');
@@ -1022,6 +1185,12 @@ function buildSummary(){
   row('Enforced by the Decision API only',
       gaps.length ? gaps.length + ' resource:scope pair(s)' : 'none',
       gaps.length ? 'deny' : 'ok');
+  if (rel !== 'v0'){
+    const holes = holePairs();
+    row('Withheld here, still granted by the role',
+        holes.length ? holes.length + ' resource:scope pair(s) — fails open' : 'none',
+        holes.length ? 'deny' : 'ok');
+  }
   row('Requires entitlement', 'AI Agents Advanced', '');
 
   q('#summaryRows').innerHTML = rows.join('');
@@ -1058,10 +1227,10 @@ function go(s){
 
 function primaryAction(){
   const b = val('bnd');
-  if (lvlVal() !== 'none' && b === 'selected' && !selectedAgents().length){
+  if (lvlVal() === 'restricted' && b === 'selected' && !selectedAgents().length){
     toast('⚠ Select at least one AI agent'); return;
   }
-  if (lvlVal() !== 'none' && b === 'brand' && !q('#brandSel').value){
+  if (lvlVal() === 'restricted' && b === 'brand' && !q('#brandSel').value){
     toast('⚠ Select a brand'); return;
   }
   if (screen === 'create'){
